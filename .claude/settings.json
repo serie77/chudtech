@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"panelId === ''feed''\" /c/Users/me/Downloads/NNNTRACKER-main/NNNTRACKER-main/nextjs-site/src/components/ResizablePanels.tsx)",
+      "Read(//c/Users/me/.claude/projects/c--Users-me-Downloads-NNNTRACKER-main-NNNTRACKER-main/60cbafd2-9c12-41e2-a2a3-aba9428023f1/tool-results/**)",
+      "Bash(grep -n \"section-label\" \"/c/Users/me/Downloads/NNNTRACKER-main/NNNTRACKER-main/nextjs-site/src/components\"/*.tsx)",
+      "Read(//c/Users/me/Downloads/NNNTRACKER-main/**)"
+    ]
+  }
+}

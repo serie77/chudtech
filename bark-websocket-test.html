@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bark.gg WebSocket Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        #log {
+            border: 2px solid #00ff00;
+            padding: 15px;
+            height: 500px;
+            overflow-y: auto;
+            background: #000;
+            margin-top: 20px;
+        }
+        .error { color: #ff0000; }
+        .success { color: #00ff00; }
+        .info { color: #ffff00; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input {
+            width: 500px;
+            padding: 8px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐶 Bark.gg WebSocket Connection Test</h1>
+    
+    <div>
+        <label>Token: </label>
+        <input type="text" id="token" value="7ea5ea3b456ff700d39927a80f9661e2dc9e612c84ee77207d48d4d1eb6a941d">
+    </div>
+    
+    <div style="margin-top: 10px;">
+        <button onclick="testConnection()">🔌 Test Connection</button>
+        <button onclick="testWithDifferentAuth()">🔐 Test Different Auth Format</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function testConnection() {
+            const token = document.getElementById('token').value;
+            
+            if (ws) {
+                log('Closing existing connection...', 'info');
+                ws.close();
+                ws = null;
+            }
+            
+            log('=== STARTING CONNECTION TEST ===', 'info');
+            log(`Token: ${token.substring(0, 10)}...`, 'info');
+            log('Attempting connection to: wss://news.bark.gg/ws', 'info');
+            
+            try {
+                ws = new WebSocket('wss://news.bark.gg/ws');
+                
+                ws.onopen = () => {
+                    log('✅ WebSocket CONNECTED!', 'success');
+                    
+                    // Try standard authentication format
+                    const authMsg = `login <${token}>`;
+                    log(`📤 Sending auth: ${authMsg}`, 'info');
+                    ws.send(authMsg);
+                    log('⏳ Waiting for response...', 'info');
+                };
+                
+                ws.onmessage = (event) => {
+                    log(`📨 MESSAGE RECEIVED:`, 'success');
+                    log(`Raw data: ${event.data}`, 'info');
+                    
+                    try {
+                        const parsed = JSON.parse(event.data);
+                        log(`Parsed: ${JSON.stringify(parsed, null, 2)}`, 'success');
+                    } catch (e) {
+                        log(`Not JSON: ${event.data}`, 'info');
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    log(`❌ WebSocket ERROR:`, 'error');
+                    log(`Error object: ${JSON.stringify(error)}`, 'error');
+                    log(`Error type: ${error.type}`, 'error');
+                };
+                
+                ws.onclose = (event) => {
+                    log(`🔴 WebSocket CLOSED`, 'error');
+                    log(`Code: ${event.code}`, 'error');
+                    log(`Reason: ${event.reason || 'No reason provided'}`, 'error');
+                    log(`Clean close: ${event.wasClean}`, 'error');
+                    
+                    // Decode close codes
+                    const codes = {
+                        1000: 'Normal Closure',
+                        1001: 'Going Away',
+                        1002: 'Protocol Error',
+                        1003: 'Unsupported Data',
+                        1005: 'No Status Received',
+                        1006: 'Abnormal Closure (no close frame)',
+                        1007: 'Invalid frame payload data',
+                        1008: 'Policy Violation',
+                        1009: 'Message too big',
+                        1010: 'Missing Extension',
+                        1011: 'Internal Server Error',
+                        1015: 'TLS Handshake Failure'
+                    };
+                    log(`Meaning: ${codes[event.code] || 'Unknown code'}`, 'error');
+                };
+                
+            } catch (error) {
+                log(`❌ EXCEPTION: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+        
+        function testWithDifferentAuth() {
+            const token = document.getElementById('token').value;
+            
+            if (ws) {
+                log('Closing existing connection...', 'info');
+                ws.close();
+                ws = null;
+            }
+            
+            log('=== TESTING DIFFERENT AUTH FORMATS ===', 'info');
+            
+            try {
+                ws = new WebSocket('wss://news.bark.gg/ws');
+                
+                ws.onopen = () => {
+                    log('✅ WebSocket CONNECTED!', 'success');
+                    
+                    // Try different auth formats
+                    const formats = [
+                        `login <${token}>`,
+                        token,
+                        `{"token": "${token}"}`,
+                        `{"auth": "${token}"}`,
+                        `{"type": "login", "token": "${token}"}`,
+                        `login ${token}`,
+                        `auth ${token}`,
+                    ];
+                    
+                    formats.forEach((format, i) => {
+                        setTimeout(() => {
+                            log(`📤 Trying format ${i + 1}: ${format.substring(0, 50)}...`, 'info');
+                            ws.send(format);
+                        }, i * 2000);
+                    });
+                };
+                
+                ws.onmessage = (event) => {
+                    log(`📨 RESPONSE: ${event.data}`, 'success');
+                };
+                
+                ws.onerror = (error) => {
+                    log(`❌ ERROR: ${JSON.stringify(error)}`, 'error');
+                };
+                
+                ws.onclose = (event) => {
+                    log(`🔴 CLOSED - Code: ${event.code}, Reason: ${event.reason || 'none'}`, 'error');
+                };
+                
+            } catch (error) {
+                log(`❌ EXCEPTION: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-run on page load
+        log('🚀 Test page loaded. Click "Test Connection" to begin.', 'info');
+    </script>
+</body>
+</html>

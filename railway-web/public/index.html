@@ -1,0 +1,3120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy Server</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="custom-presets.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <button class="nav-btn active">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+                    Feed
+                </button>
+                <button class="nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    Filters
+                </button>
+                <button class="nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Settings
+                </button>
+                <button class="nav-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    Pop Out Feed
+                </button>
+            </div>
+            <div class="nav-center">
+                <input type="text" class="site-chat" id="siteChatInput" placeholder="Site chat, /help">
+            </div>
+            <div class="nav-right">
+                <span class="user-count">👥 0</span>
+                <button class="nav-btn vamp-btn">🦇 Vamp</button>
+                <div class="user-profile">
+                    <img src="images/pump-logo.png" class="avatar" onerror="this.style.background='#ff6600'" alt="avatar">
+                    <span class="username">sasha joi</span>
+                </div>
+                <button class="nav-icon-btn">⊕</button>
+                <button class="nav-icon-btn" id="walletModalBtn">🌐</button>
+            </div>
+        </div>
+
+        <!-- Main Content Area - 3 Column Layout -->
+        <div class="main-content">
+            <!-- Left Panel - CREATE (Resizable) -->
+            <div class="token-deploy-panel" id="tokenDeployPanel">
+                <!-- Resize Handle -->
+                <div class="resize-handle" id="resizeHandle"></div>
+                <!-- Token Deploy Header -->
+                <div class="deploy-header">
+                    <span class="deploy-title">CREATE</span>
+                    <button class="header-btn">📋 Clear</button>
+                    <button class="header-btn disabled">💾 Save Token</button>
+                    <span class="wallet-selector">
+                        Wallet:
+                        <select class="wallet-dropdown" id="walletDropdown">
+                            <option value="">No wallet</option>
+                        </select>
+                    </span>
+                </div>
+
+                <!-- Token Form -->
+                <div class="form-compact">
+                    <div class="input-group">
+                        <label>NAME <span class="char-counter" id="nameCharCounter">0/32</span></label>
+                        <div class="input-with-lang">
+                            <input type="text" id="tokenName" placeholder="Enter token name..." maxlength="32" value="">
+                            <button class="translate-arrow-btn">⬇️</button>
+                            <button class="auto-translate-btn">🔄</button>
+                            <button class="lang-btn">中文</button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>SYMBOL <span class="char-counter" id="tickerCharCounter">0/13</span></label>
+                        <div class="input-with-lang">
+                            <input type="text" id="tokenSymbol" placeholder="TICKER" maxlength="13" value="">
+                            <button class="translate-arrow-btn">⬇️</button>
+                            <button class="auto-translate-btn">🔄</button>
+                            <button class="lang-btn">中文</button>
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-row-inline">
+                        <label><input type="checkbox" checked> Auto-fill on copy</label>
+                        <label><input type="checkbox" checked> Auto-generate ticker</label>
+                        <span class="j7-badge">J7</span>
+                    </div>
+                    
+                    <div class="input-row">
+                        <div class="input-group half">
+                            <label>WEBSITE</label>
+                            <input type="text" id="website" placeholder="https://example.com">
+                        </div>
+                        <div class="input-group half">
+                            <label>TWITTER</label>
+                            <input type="text" id="twitter" placeholder="https://x.com/...">
+                        </div>
+                    </div>
+                    
+                    <!-- Select Image Section -->
+                    <div class="select-image-section">
+                        <label>Select Image</label>
+                        <div class="image-select-area" id="imagePreviewDeploy">
+                            <span class="no-image-text">No image selected</span>
+                        </div>
+                        <div class="image-buttons">
+                            <button class="image-btn">📋 Paste</button>
+                            <button class="image-btn">⬆️ Upload</button>
+                            <button class="image-btn" id="imageEditorBtn">🖼️ Images</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Platform Selection - Reordered: PUMP, USD1, BONK, BNB, BAGS, JUPITER -->
+                    <div class="platform-section">
+                        <div class="platform-icons-row">
+                            <div class="platform-item">
+                                <button class="platform-indicator active" data-platform="pump" data-amount="0.001">
+                                    <img src="images/pump-logo.png" alt="Pump" class="platform-logo">
+                                </button>
+                            </div>
+                            <div class="platform-item">
+                                <button class="platform-indicator" data-platform="usd1" data-amount="4">
+                                    <img src="images/usd1-logo.png" alt="USD1" class="platform-logo">
+                                </button>
+                            </div>
+                            <div class="platform-item">
+                                <button class="platform-indicator" data-platform="bonk" data-amount="13">
+                                    <img src="images/bonk-logo.png" alt="BONK" class="platform-logo">
+                                </button>
+                            </div>
+                            <div class="platform-item">
+                                <button class="platform-indicator" data-platform="bnb" data-amount="7">
+                                    <img src="images/bnb-logo.png" alt="BNB" class="platform-logo">
+                                </button>
+                            </div>
+                            <div class="platform-item">
+                                <button class="platform-indicator" data-platform="bags" data-amount="3.5">
+                                    <img src="images/bags-logo.png" alt="Bags" class="platform-logo">
+                                </button>
+                            </div>
+                            <div class="platform-item">
+                                <button class="platform-indicator" data-platform="jupiter" data-amount="0.5">
+                                    <img src="images/jupiter-logo.png" alt="Jupiter" class="platform-logo">
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Buy Amount (for compatibility) -->
+                    <div class="buy-amount-section" style="display:none;">
+                        <label>Buy Amount (SOL)</label>
+                        <input type="text" id="buyAmount" value="6" class="buy-amount-input">
+                    </div>
+                    
+                    <!-- Feature Toggles -->
+                    <div class="feature-toggles">
+                        <button class="toggle-btn">🎲 Mayhem <span class="toggle-status off">OFF</span></button>
+                        <button class="toggle-btn">📦 Multi <span class="toggle-status off">OFF</span></button>
+                        <button class="toggle-btn">💰 Auto-sell <span class="toggle-status off">OFF</span></button>
+                    </div>
+                    <div class="feature-toggles">
+                        <button class="toggle-btn">📊 Sell Panel <span class="toggle-status off">OFF</span></button>
+                        <button class="toggle-btn">🎁 Bundle <span class="toggle-status off">OFF</span></button>
+                    </div>
+                    
+                    <!-- Quick Deploy Buttons -->
+                    <div class="quick-deploy-row">
+                        <button class="quick-deploy-btn">≡ 3</button>
+                        <button class="quick-deploy-btn">≡ 4</button>
+                        <button class="quick-deploy-btn">≡ 8</button>
+                        <button class="quick-deploy-btn">≡ 10</button>
+                        <button class="quick-deploy-btn settings-btn">⚙️</button>
+                    </div>
+                    
+                    <!-- Main Deploy Button -->
+                    <div class="deploy-btn-row">
+                        <div class="letter-toggle">
+                            <span>LETTER</span>
+                            <button class="letter-btn active">SOL</button>
+                            <button class="letter-btn">ASCII</button>
+                        </div>
+                        <button class="main-deploy-btn" id="mainBtn">
+                            <span class="deploy-icon">⚡</span>
+                            Deploy (Enter)
+                        </button>
+                    </div>
+                    
+                    <!-- Presets -->
+                    <div class="presets-section">
+                        <label>PRESETS</label>
+                        <div class="preset-tags" id="deployPresetButtons">
+                            <span class="preset-tag">ify_ification</span>
+                            <span class="preset-tag">_otus</span>
+                            <span class="preset-tag">justice for</span>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- Middle Panel - Tweet Feed -->
+            <div class="twitter-feed-panel">
+                <div class="twitter-feed" id="twitterFeed">
+                <!-- Tweet 1 - AFP News Agency -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <div class="tweet-author">
+                            <div class="author-avatar afp">AFP</div>
+                            <div class="author-info">
+                                <span class="author-name">AFP News Agency</span>
+                                <span class="author-handle">@AFP</span>
+                                <span class="tweet-date">1/13/2026, ...</span>
+                            </div>
+                            <button class="tweet-menu">⋮</button>
+                        </div>
+                        <button class="tweet-deploy-btn">⚡ DEPLOY</button>
+                    </div>
+                    <div class="tweet-action">@AFP posted</div>
+                    <div class="tweet-content">
+                        <span class="keyword">KR</span> Thousands partake in annual ice fishing festival in South Korea
+                        <br><br>
+                        People gather atop a frozen river in South Korea's Hwacheon for the annual Hwacheon Sancheoneo Ice Festival, hoping to <span class="highlight">catch</span> a Sancheoneo [mountain trout].
+                    </div>
+                    <div class="tweet-media">
+                        <div class="media-placeholder">
+                            <img src="images/pump-logo.png" alt="Tweet Image" style="width:100%;height:100%;object-fit:cover;opacity:0.3;">
+                        </div>
+                    </div>
+                    <div class="tweet-video-placeholder">
+                        <div class="video-play-btn">▶</div>
+                    </div>
+                </div>
+
+                <!-- Tweet 2 - CoinMarketCap -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <div class="tweet-author">
+                            <div class="author-avatar cmc">Ⓜ</div>
+                            <div class="author-info">
+                                <span class="author-name">CoinMarketCap</span>
+                                <span class="author-handle">@CoinMarketCap</span>
+                                <span class="tweet-date">1/13/2026, ...</span>
+                            </div>
+                            <button class="tweet-menu">⋮</button>
+                        </div>
+                        <button class="tweet-deploy-btn">⚡ DEPLOY</button>
+                    </div>
+                    <div class="tweet-action">@CoinMarketCap posted</div>
+                    <div class="tweet-content">
+                        LATEST: 💰 <span class="highlight">Bitcoin</span> treasury company Future Holdings has entered a non-binding agreement to be acquired by Sweden-listed H100 Group, with both companies backed by cryptographer Adam Back.
+                    </div>
+                    <div class="tweet-media orange-bg">
+                        <!-- Orange placeholder -->
+                    </div>
+                </div>
+
+                <!-- Tweet 3 - First Squawk -->
+                <div class="tweet-card featured">
+                    <div class="tweet-header">
+                        <div class="tweet-author">
+                            <div class="author-avatar squawk">🔔</div>
+                            <div class="author-info">
+                                <span class="author-name">First Squawk</span>
+                                <span class="author-handle">@FirstSquawk</span>
+                                <span class="tweet-date">1/13/2026, ...</span>
+                            </div>
+                            <button class="tweet-menu">⋮</button>
+                        </div>
+                        <button class="tweet-deploy-btn">⚡ DEPLOY</button>
+                    </div>
+                    <div class="tweet-action green">@FirstSquawk posted</div>
+                    <div class="tweet-content">
+                        FRENCH FINANCE MINISTER LESCURE: FRANCE WILL WORK ON CRITICAL MATERIALS DURING ITS G7 PRESIDENCY
+                    </div>
+                </div>
+
+                <!-- Tweet 4 - Chinese -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <div class="tweet-author">
+                            <div class="author-avatar okx">OKX</div>
+                            <div class="author-info">
+                                <span class="author-name">OKX中文</span>
+                                <span class="author-handle">@okxchinese</span>
+                                <span class="tweet-date">1/13/2026, ...</span>
+                            </div>
+                            <button class="tweet-menu">⋮</button>
+                        </div>
+                        <button class="tweet-deploy-btn">⚡ DEPLOY</button>
+                    </div>
+                    <div class="tweet-action">@okxchinese replied to @maxominog</div>
+                    <button class="translate-toggle">🌐 Translate</button>
+                    <div class="tweet-content chinese">
+                        公告细则已经公布了哦，可以看这里
+                    </div>
+                    <div class="tweet-translated">
+                        TRANSLATED FROM ZH:<br>
+                        The detailed rules have been released; you can see them here:
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - TRACKER list -->
+            <div class="tracker-list-panel">
+                <div class="tracker-header">
+                    <span class="tracker-title">TRACKER</span>
+                </div>
+                <div class="tracker-items" id="trackerItems">
+                    <!-- Tracker items will be populated here -->
+                    <div class="tracker-item">
+                        <img src="" class="tracker-thumb" alt="">
+                        <div class="tracker-info">
+                            <span class="tracker-name">Great Day</span>
+                            <span class="tracker-ticker">GREATDAY</span>
+                        </div>
+                        <span class="tracker-status">N</span>
+                    </div>
+                </div>
+                <div class="tracker-search">
+                    <span class="search-label">SEARCH</span>
+                    <input type="text" placeholder="Search coins or contract addresses..." class="tracker-search-input">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden elements for compatibility -->
+    <div style="display:none;">
+        <span id="serverStatus"></span>
+        <span id="serverStatusText"></span>
+        <input id="bagsFeeClaimer">
+        <input id="bnbAmount" value="3">
+        <input id="usd1Amount" value="2">
+        <input type="checkbox" id="multiDeployCheck">
+        <input type="range" id="multiDeploy" value="1">
+        <span id="multiDeployValue">1</span>
+        <input type="checkbox" id="openAxiom" checked>
+        <button id="clearAllBtn"></button>
+        <button id="translateBtn"></button>
+        <button id="translateDeployBtn"></button>
+        
+        <!-- Wallet Tab Elements -->
+        <input id="solanaWalletName">
+        <textarea id="solanaApiKey"></textarea>
+        <button id="importSolanaBtn"></button>
+        <div id="solanaImportResult"></div>
+        <span id="solanaResultName"></span>
+        <div id="solanaWalletList"></div>
+        <input id="bnbWalletName">
+        <textarea id="bnbApiKey"></textarea>
+        <button id="importBnbBtn"></button>
+        <div id="bnbImportResult"></div>
+        <span id="bnbResultName"></span>
+        <div id="bnbWalletList"></div>
+        
+        <!-- Settings Tab Elements -->
+        <input id="imageFolder">
+        <button id="browseFolderBtn"></button>
+        <span id="currentImageName"></span>
+        <span id="currentImageTime"></span>
+        <div id="imagePreview"></div>
+        <input type="checkbox" id="autoRefreshImages" checked>
+        <input type="checkbox" id="saveWindowPosition">
+        <button id="saveCurrentPosition"></button>
+        <button id="resetWindowPosition"></button>
+        <input id="translateDeployKeybind">
+        <button id="clearTranslateDeployKeybind"></button>
+        <input id="pumpWhitelist">
+        <input id="bonkWhitelist">
+        <input id="bagsWhitelist">
+        <input id="rayWhitelist">
+        <input id="bnbWhitelist">
+        <input id="usd1Whitelist">
+        <div id="pumpWhitelistTags"></div>
+        <div id="bonkWhitelistTags"></div>
+        <div id="bagsWhitelistTags"></div>
+        <div id="rayWhitelistTags"></div>
+        <div id="bnbWhitelistTags"></div>
+        <div id="usd1WhitelistTags"></div>
+        <input id="presetButtonName">
+        <input id="presetNamePrefix">
+        <input id="presetNameSuffix">
+        <input id="presetTickerPrefix">
+        <input id="presetTickerSuffix">
+        <button id="addPresetButton"></button>
+        <div id="presetButtonsList"></div>
+        
+        <!-- Logs Tab Elements -->
+        <div id="logsOutput"></div>
+        <button id="clearLogsBtn"></button>
+        <button id="scrollBottomBtn"></button>
+        
+        <!-- Status Elements -->
+        <span id="connectionStatus"></span>
+        <span id="lastActivity"></span>
+        
+        <!-- Tab Elements -->
+        <button class="tab-btn" data-tab="deploy"></button>
+        <button class="tab-btn" data-tab="wallet"></button>
+        <button class="tab-btn" data-tab="logs"></button>
+        <button class="tab-btn" data-tab="settings"></button>
+        <div class="tab-content" id="deploy-tab"></div>
+        <div class="tab-content" id="wallet-tab"></div>
+        <div class="tab-content" id="logs-tab"></div>
+        <div class="tab-content" id="settings-tab"></div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Processing...</div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Settings Modal - J7Tracker Style -->
+    <div class="settings-modal" id="settingsModal" style="display: none;">
+        <div class="settings-modal-content">
+            <div class="settings-header">
+                <div class="settings-title">
+                    <span class="settings-icon">✦</span>
+                    <span>Settings</span>
+                </div>
+                <button class="settings-close-btn" id="closeSettingsModal">×</button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-settings-tab="appearance">◐ Appearance</button>
+                <button class="settings-tab" data-settings-tab="sounds">🔊 Sounds</button>
+                <button class="settings-tab" data-settings-tab="accounts">👥 Custom Accounts</button>
+                <button class="settings-tab" data-settings-tab="contracts">📄 Contracts</button>
+                <button class="settings-tab" data-settings-tab="highlights">⭐ Highlights</button>
+                <button class="settings-tab" data-settings-tab="chat">💬 Chat</button>
+                <button class="settings-tab" data-settings-tab="advanced">⚙️ Advanced</button>
+            </div>
+            
+            <div class="settings-body">
+                <!-- Appearance Tab -->
+                <div class="settings-tab-content active" id="settings-appearance">
+                    <h3 class="settings-section-title">◐ Appearance</h3>
+                    
+                    <div class="settings-option-row">
+                        <span class="option-label">Color Theme:</span>
+                        <div class="settings-dropdown-full">
+                            <select id="colorTheme">
+                                <option value="default">◉ Default</option>
+                                <option value="dark">☾ Dark</option>
+                                <option value="modern-dark" selected>☐ Modern Dark</option>
+                                <option value="midnight-blue">☾ Midnight Blue</option>
+                                <option value="dusk">✦ Dusk</option>
+                                <option value="sunset">✧ Sunset</option>
+                                <option value="purple">◇ Purple</option>
+                                <option value="forest">🌲 Forest</option>
+                                <option value="crimson">♦ Crimson</option>
+                                <option value="cyan">◇ Cyan</option>
+                                <option value="gold">☆ Gold</option>
+                                <option value="orange">♦ Orange</option>
+                                <option value="pink">❀ Pink</option>
+                                <option value="mint">⌀ Mint</option>
+                                <option value="lavender">◇ Lavender</option>
+                            </select>
+                            <span class="dropdown-arrow">›</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-option-row">
+                        <span class="option-label">⊞ Image Layout:</span>
+                        <div class="settings-dropdown-full">
+                            <select id="imageLayout">
+                                <option value="grid">Grid Layout</option>
+                                <option value="list">List Layout</option>
+                                <option value="compact">Compact</option>
+                            </select>
+                            <span class="dropdown-arrow">›</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-option-slider">
+                        <span class="option-label">Card Width: <span id="cardWidthValue">2000px</span></span>
+                        <div class="slider-track">
+                            <input type="range" id="cardWidth" min="500" max="2000" value="2000">
+                        </div>
+                        <div class="slider-labels">
+                            <span>500px</span>
+                            <span>850px</span>
+                            <span>1200px</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-option-checkbox">
+                        <label>
+                            <input type="checkbox" id="pauseOnHover" checked>
+                            <span class="checkbox-icon">⏸</span>
+                            Pause updates on hover
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Sounds Tab - J7Tracker Style -->
+                <div class="settings-tab-content" id="settings-sounds">
+                    <h3 class="settings-section-title">🔊 Sounds & Notifications</h3>
+                    
+                    <!-- Enable Sounds -->
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" id="enableSounds" checked> Enable notification sounds</label>
+                    </div>
+                    
+                    <!-- Volume Slider -->
+                    <div class="settings-option-slider">
+                        <span class="option-label">Volume: <span id="volumeValue">50%</span></span>
+                        <div class="slider-track cyan-slider">
+                            <input type="range" id="soundVolume" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                    
+                    <!-- Default Sound -->
+                    <div class="settings-option-row">
+                        <span class="option-label">Default Sound:</span>
+                        <button class="settings-selector-btn" id="defaultSoundBtn">
+                            <span class="selector-icon">🔊</span>
+                            <span class="selector-value" id="selectedSound">Beep</span>
+                            <span class="selector-arrow">›</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Custom Sounds -->
+                    <div class="settings-option-row">
+                        <span class="option-label">Custom Sounds:</span>
+                        <button class="settings-selector-btn" id="customSoundsBtn">
+                            <span class="selector-icon">🎵</span>
+                            <span class="selector-value">Manage Custom Sounds</span>
+                            <span class="custom-count" id="customSoundCount">0</span>
+                            <span class="selector-arrow">›</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Default Highlight Color -->
+                    <div class="settings-option-row">
+                        <span class="option-label">Default Highlight Color:</span>
+                        <button class="settings-selector-btn" id="highlightColorBtn">
+                            <span class="color-preview" id="selectedColorPreview" style="background: #22d3ee;"></span>
+                            <span class="selector-value" id="selectedColorName">Cyan</span>
+                            <span class="selector-arrow">›</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Notification Mode -->
+                    <div class="settings-option-row">
+                        <span class="option-label">Notification Mode:</span>
+                        <div class="settings-dropdown-full">
+                            <select id="notificationMode">
+                                <option value="all">All Accounts</option>
+                                <option value="specific">Specific Accounts Only</option>
+                            </select>
+                        </div>
+                        <p class="option-description">All Accounts: Notifies for everyone (with custom overrides below). Specific: Only accounts in your list.</p>
+                    </div>
+                    
+                    <!-- Custom Notifications -->
+                    <div class="custom-notifications-section">
+                        <div class="section-header">
+                            <span class="section-icon">🔔</span>
+                            <span class="section-title">Custom Notifications</span>
+                            <div class="section-actions">
+                                <button class="manage-btn" id="manageNotificationsBtn">⚙️ Manage</button>
+                                <button class="add-btn" id="addAccountBtn">+ Add</button>
+                            </div>
+                        </div>
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="accountSearchInput" placeholder="Search...">
+                        </div>
+                        <div class="custom-accounts-list" id="customAccountsList">
+                            <!-- Custom accounts will be added here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Custom Accounts Tab -->
+                <div class="settings-tab-content" id="settings-accounts">
+                    <h3 class="settings-section-title">👥 Custom Accounts</h3>
+                    <div class="settings-option-row">
+                        <span class="option-label">Add Twitter Account to Track:</span>
+                        <div class="input-with-btn">
+                            <input type="text" id="newAccountInput" placeholder="@username">
+                            <button class="settings-add-btn">Add</button>
+                        </div>
+                    </div>
+                    <div class="tracked-accounts-list" id="trackedAccountsList">
+                        <div class="tracked-account">
+                            <span class="account-name">@elonmusk</span>
+                            <button class="remove-account-btn">×</button>
+                        </div>
+                        <div class="tracked-account">
+                            <span class="account-name">@CoinMarketCap</span>
+                            <button class="remove-account-btn">×</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contracts Tab -->
+                <div class="settings-tab-content" id="settings-contracts">
+                    <h3 class="settings-section-title">📄 Contracts</h3>
+                    <div class="settings-option-row">
+                        <span class="option-label">Default RPC Endpoint:</span>
+                        <input type="text" class="settings-input-full" placeholder="https://api.mainnet-beta.solana.com">
+                    </div>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" checked> Auto-verify contracts</label>
+                    </div>
+                </div>
+                
+                <!-- Highlights Tab -->
+                <div class="settings-tab-content" id="settings-highlights">
+                    <h3 class="settings-section-title">⭐ Highlights</h3>
+                    <div class="settings-option-row">
+                        <span class="option-label">Highlight Keywords:</span>
+                        <input type="text" class="settings-input-full" placeholder="bitcoin, solana, pump...">
+                    </div>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" checked> Show highlighted tweets first</label>
+                    </div>
+                </div>
+                
+                <!-- Chat Tab -->
+                <div class="settings-tab-content" id="settings-chat">
+                    <h3 class="settings-section-title">💬 Chat</h3>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" checked> Enable site chat</label>
+                    </div>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox"> Show timestamps</label>
+                    </div>
+                </div>
+                
+                <!-- Advanced Tab -->
+                <div class="settings-tab-content" id="settings-advanced">
+                    <h3 class="settings-section-title">⚙️ Advanced</h3>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" id="saveWindowPos"> Save window position</label>
+                    </div>
+                    <div class="settings-option-row">
+                        <span class="option-label">Deploy Keybind:</span>
+                        <input type="text" id="deployKeybindSetting" class="settings-input-full" placeholder="Press key..." readonly>
+                    </div>
+                    <div class="settings-option-checkbox">
+                        <label><input type="checkbox" checked> Auto-reconnect on disconnect</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Settings Modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const settingsModal = document.getElementById('settingsModal');
+            const closeBtn = document.getElementById('closeSettingsModal');
+            const settingsTabs = document.querySelectorAll('.settings-tab');
+            const settingsContents = document.querySelectorAll('.settings-tab-content');
+            const cardWidthSlider = document.getElementById('cardWidth');
+            const cardWidthValue = document.getElementById('cardWidthValue');
+            
+            // Find the Settings button in the top nav (contains "Settings" text)
+            const navButtons = document.querySelectorAll('.nav-btn');
+            let settingsNavBtn = null;
+            navButtons.forEach(btn => {
+                if (btn.textContent.includes('Settings')) {
+                    settingsNavBtn = btn;
+                }
+            });
+            
+            // Open settings on Settings nav button click
+            if (settingsNavBtn) {
+                settingsNavBtn.addEventListener('click', function() {
+                    settingsModal.style.display = 'flex';
+                });
+            }
+            
+            // Also support the quick deploy cog button
+            const settingsCog = document.querySelector('.quick-deploy-btn.settings-btn');
+            if (settingsCog) {
+                settingsCog.addEventListener('click', function() {
+                    settingsModal.style.display = 'flex';
+                });
+            }
+            
+            // Close settings
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    settingsModal.style.display = 'none';
+                });
+            }
+            
+            // Close on backdrop click
+            settingsModal.addEventListener('click', function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+            
+            // Tab switching
+            settingsTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.dataset.settingsTab;
+                    
+                    // Remove active from all tabs
+                    settingsTabs.forEach(t => t.classList.remove('active'));
+                    settingsContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active to clicked tab
+                    this.classList.add('active');
+                    document.getElementById('settings-' + tabId).classList.add('active');
+                });
+            });
+            
+            // Card width slider
+            if (cardWidthSlider && cardWidthValue) {
+                cardWidthSlider.addEventListener('input', function() {
+                    cardWidthValue.textContent = this.value + 'px';
+                });
+            }
+            
+            // Theme definitions
+            const themes = {
+                'default': {
+                    '--bg-primary': '#2a2a2a',
+                    '--bg-secondary': '#333333',
+                    '--bg-panel': '#2d2d2d',
+                    '--accent': '#4da6ff',
+                    '--accent-hover': '#66b3ff',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#888888',
+                    '--border': '#444444'
+                },
+                'dark': {
+                    '--bg-primary': '#0d0d0d',
+                    '--bg-secondary': '#1a1a1a',
+                    '--bg-panel': '#111111',
+                    '--accent': '#4da6ff',
+                    '--accent-hover': '#66b3ff',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#666666',
+                    '--border': '#222222'
+                },
+                'modern-dark': {
+                    '--bg-primary': '#0a0a0a',
+                    '--bg-secondary': '#0d0d0d',
+                    '--bg-panel': '#0d0d0d',
+                    '--accent': '#22c55e',
+                    '--accent-hover': '#16a34a',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#666666',
+                    '--border': '#1a1a1a'
+                },
+                'midnight-blue': {
+                    '--bg-primary': '#0a1628',
+                    '--bg-secondary': '#0f1d32',
+                    '--bg-panel': '#0d1929',
+                    '--accent': '#3b82f6',
+                    '--accent-hover': '#60a5fa',
+                    '--text-primary': '#e2e8f0',
+                    '--text-secondary': '#64748b',
+                    '--border': '#1e3a5f'
+                },
+                'dusk': {
+                    '--bg-primary': '#1a1520',
+                    '--bg-secondary': '#221a28',
+                    '--bg-panel': '#1e1825',
+                    '--accent': '#a855f7',
+                    '--accent-hover': '#c084fc',
+                    '--text-primary': '#f3e8ff',
+                    '--text-secondary': '#9333ea',
+                    '--border': '#3b2050'
+                },
+                'sunset': {
+                    '--bg-primary': '#1a1418',
+                    '--bg-secondary': '#251a20',
+                    '--bg-panel': '#1f161c',
+                    '--accent': '#f97316',
+                    '--accent-hover': '#fb923c',
+                    '--text-primary': '#fff7ed',
+                    '--text-secondary': '#c2410c',
+                    '--border': '#431407'
+                },
+                'purple': {
+                    '--bg-primary': '#1a0a2e',
+                    '--bg-secondary': '#250f42',
+                    '--bg-panel': '#1f0c38',
+                    '--accent': '#a855f7',
+                    '--accent-hover': '#c084fc',
+                    '--text-primary': '#faf5ff',
+                    '--text-secondary': '#9333ea',
+                    '--border': '#4c1d95'
+                },
+                'forest': {
+                    '--bg-primary': '#0a1a0f',
+                    '--bg-secondary': '#0f251a',
+                    '--bg-panel': '#0c1f13',
+                    '--accent': '#22c55e',
+                    '--accent-hover': '#4ade80',
+                    '--text-primary': '#ecfdf5',
+                    '--text-secondary': '#15803d',
+                    '--border': '#166534'
+                },
+                'crimson': {
+                    '--bg-primary': '#1a0a0a',
+                    '--bg-secondary': '#250f0f',
+                    '--bg-panel': '#1f0c0c',
+                    '--accent': '#dc2626',
+                    '--accent-hover': '#ef4444',
+                    '--text-primary': '#fef2f2',
+                    '--text-secondary': '#991b1b',
+                    '--border': '#450a0a'
+                },
+                'cyan': {
+                    '--bg-primary': '#0a1a1a',
+                    '--bg-secondary': '#0f2525',
+                    '--bg-panel': '#0c1f1f',
+                    '--accent': '#06b6d4',
+                    '--accent-hover': '#22d3ee',
+                    '--text-primary': '#ecfeff',
+                    '--text-secondary': '#0891b2',
+                    '--border': '#164e63'
+                },
+                'gold': {
+                    '--bg-primary': '#1a1608',
+                    '--bg-secondary': '#252010',
+                    '--bg-panel': '#1f1b0c',
+                    '--accent': '#eab308',
+                    '--accent-hover': '#facc15',
+                    '--text-primary': '#fefce8',
+                    '--text-secondary': '#a16207',
+                    '--border': '#422006'
+                },
+                'orange': {
+                    '--bg-primary': '#1a120a',
+                    '--bg-secondary': '#25190f',
+                    '--bg-panel': '#1f150c',
+                    '--accent': '#f97316',
+                    '--accent-hover': '#fb923c',
+                    '--text-primary': '#fff7ed',
+                    '--text-secondary': '#c2410c',
+                    '--border': '#431407'
+                },
+                'pink': {
+                    '--bg-primary': '#1a0a14',
+                    '--bg-secondary': '#250f1c',
+                    '--bg-panel': '#1f0c18',
+                    '--accent': '#ec4899',
+                    '--accent-hover': '#f472b6',
+                    '--text-primary': '#fdf2f8',
+                    '--text-secondary': '#be185d',
+                    '--border': '#500724'
+                },
+                'mint': {
+                    '--bg-primary': '#0a1a18',
+                    '--bg-secondary': '#0f2522',
+                    '--bg-panel': '#0c1f1c',
+                    '--accent': '#10b981',
+                    '--accent-hover': '#34d399',
+                    '--text-primary': '#ecfdf5',
+                    '--text-secondary': '#047857',
+                    '--border': '#064e3b'
+                },
+                'lavender': {
+                    '--bg-primary': '#14101a',
+                    '--bg-secondary': '#1c1625',
+                    '--bg-panel': '#18121f',
+                    '--accent': '#8b5cf6',
+                    '--accent-hover': '#a78bfa',
+                    '--text-primary': '#f5f3ff',
+                    '--text-secondary': '#6d28d9',
+                    '--border': '#3b2170'
+                }
+            };
+            
+            // Apply theme function - COMPREHENSIVE
+            function applyTheme(themeName) {
+                const theme = themes[themeName] || themes['modern-dark'];
+                
+                // Remove existing theme style
+                const existingStyle = document.getElementById('theme-style');
+                if (existingStyle) existingStyle.remove();
+                
+                // Create dynamic CSS for full theme
+                const themeCSS = `
+                    /* Body & Container */
+                    body { background: ${theme['--bg-primary']} !important; }
+                    .app-container { background: ${theme['--bg-primary']} !important; border-color: ${theme['--border']} !important; }
+                    
+                    /* Top Nav */
+                    .top-nav { background: ${theme['--bg-secondary']} !important; border-bottom-color: ${theme['--border']} !important; }
+                    .nav-btn { color: ${theme['--text-secondary']} !important; border-color: ${theme['--border']} !important; }
+                    .nav-btn:hover, .nav-btn.active { background: ${theme['--bg-panel']} !important; color: ${theme['--text-primary']} !important; }
+                    .site-chat { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* Token Deploy Panel */
+                    .token-deploy-panel { background: ${theme['--bg-panel']} !important; border-right-color: ${theme['--border']} !important; }
+                    .deploy-header { background: ${theme['--bg-secondary']} !important; border-bottom-color: ${theme['--border']} !important; }
+                    .deploy-title { color: ${theme['--accent']} !important; }
+                    .header-btn { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .header-btn:hover { background: ${theme['--bg-secondary']} !important; color: ${theme['--text-primary']} !important; }
+                    .wallet-dropdown { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* Inputs */
+                    .input-group input, .input-group textarea { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                    .input-group input:focus { border-color: ${theme['--accent']} !important; }
+                    .input-group label { color: ${theme['--text-secondary']} !important; }
+                    .char-counter { color: ${theme['--accent']} !important; }
+                    .input-with-lang .lang-btn { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .translate-arrow-btn, .auto-translate-btn { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    
+                    /* Image Section */
+                    .image-select-area { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; }
+                    .image-btn { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .image-btn:hover { background: ${theme['--bg-secondary']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* Platform Section */
+                    .platform-indicator { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; }
+                    .platform-indicator:hover { background: ${theme['--bg-secondary']} !important; }
+                    .platform-indicator.active { border-color: ${theme['--accent']} !important; background: ${theme['--bg-secondary']} !important; }
+                    .platform-amount-input { color: ${theme['--accent']} !important; }
+                    
+                    /* Feature Toggles */
+                    .toggle-btn { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .toggle-btn:hover { background: ${theme['--bg-panel']} !important; }
+                    .toggle-status.on { color: ${theme['--accent']} !important; }
+                    
+                    /* Quick Deploy */
+                    .quick-deploy-btn { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .quick-deploy-btn:hover { background: ${theme['--bg-panel']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* Main Deploy Button */
+                    .main-deploy-btn { background: linear-gradient(135deg, ${theme['--bg-panel']} 0%, ${theme['--bg-secondary']} 100%) !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .main-deploy-btn:hover { border-color: ${theme['--accent']} !important; color: ${theme['--accent']} !important; }
+                    .deploy-icon { color: ${theme['--accent']} !important; }
+                    .letter-toggle { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; }
+                    .letter-btn { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .letter-btn.active { background: ${theme['--accent']} !important; border-color: ${theme['--accent']} !important; color: #000 !important; }
+                    
+                    /* Presets */
+                    .preset-tag { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-secondary']} !important; }
+                    .preset-tag:hover { background: ${theme['--bg-secondary']} !important; color: ${theme['--accent']} !important; border-color: ${theme['--accent']} !important; }
+                    
+                    /* Saved/Google Row */
+                    .saved-section, .google-section { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; }
+                    .filter-input, .search-input { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* Grid Images */
+                    .grid-image { background: ${theme['--bg-secondary']} !important; border-color: ${theme['--border']} !important; }
+                    .grid-image:hover { border-color: ${theme['--accent']} !important; }
+                    
+                    /* Twitter Feed */
+                    .twitter-feed-panel, .twitter-feed { background: ${theme['--bg-primary']} !important; }
+                    .tweet-card { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; }
+                    .tweet-card:hover { border-color: ${theme['--bg-secondary']} !important; }
+                    .tweet-content { color: ${theme['--text-primary']} !important; }
+                    .tweet-action { color: ${theme['--accent']} !important; }
+                    .author-name { color: ${theme['--text-primary']} !important; }
+                    .author-handle { color: ${theme['--text-secondary']} !important; }
+                    .tweet-deploy-btn { background: ${theme['--accent']} !important; }
+                    .tweet-deploy-btn:hover { background: ${theme['--accent-hover']} !important; }
+                    
+                    /* Tracker Panel */
+                    .tracker-list-panel { background: ${theme['--bg-panel']} !important; border-left-color: ${theme['--border']} !important; }
+                    .tracker-header { border-bottom-color: ${theme['--border']} !important; }
+                    .tracker-title { color: ${theme['--text-secondary']} !important; }
+                    .tracker-item { border-bottom-color: ${theme['--border']} !important; }
+                    .tracker-item:hover { background: ${theme['--bg-secondary']} !important; }
+                    .tracker-item.active { background: ${theme['--bg-secondary']} !important; border-left-color: ${theme['--accent']} !important; }
+                    .tracker-name { color: ${theme['--text-primary']} !important; }
+                    .tracker-ticker { color: ${theme['--text-secondary']} !important; }
+                    .tracker-search { background: ${theme['--bg-secondary']} !important; border-top-color: ${theme['--border']} !important; }
+                    .tracker-search-input { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                    
+                    /* J7 Badge */
+                    .j7-badge { background: ${theme['--accent']} !important; color: #000 !important; }
+                    
+                    /* Checkbox styling */
+                    .checkbox-row-inline { background: rgba(${parseInt(theme['--accent'].slice(1,3),16)}, ${parseInt(theme['--accent'].slice(3,5),16)}, ${parseInt(theme['--accent'].slice(5,7),16)}, 0.05) !important; border-color: ${theme['--border']} !important; }
+                    .checkbox-row-inline label { color: ${theme['--text-secondary']} !important; }
+                    
+                    /* Settings Modal */
+                    .settings-modal-content { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; }
+                    .settings-header { border-bottom-color: ${theme['--border']} !important; }
+                    .settings-tabs { background: ${theme['--bg-secondary']} !important; border-bottom-color: ${theme['--border']} !important; }
+                    .settings-tab { color: ${theme['--text-secondary']} !important; }
+                    .settings-tab:hover { background: ${theme['--bg-panel']} !important; }
+                    .settings-tab.active { background: ${theme['--accent']} !important; color: #fff !important; }
+                    .settings-body { background: ${theme['--bg-secondary']} !important; }
+                    .settings-section-title { color: ${theme['--text-primary']} !important; }
+                    .option-label { color: ${theme['--text-secondary']} !important; }
+                    .settings-dropdown-full select, .settings-input-full { background: ${theme['--bg-panel']} !important; border-color: ${theme['--border']} !important; color: ${theme['--text-primary']} !important; }
+                `;
+                
+                // Add the theme style
+                const styleEl = document.createElement('style');
+                styleEl.id = 'theme-style';
+                styleEl.textContent = themeCSS;
+                document.head.appendChild(styleEl);
+                
+                // Save theme preference
+                localStorage.setItem('selectedTheme', themeName);
+                
+                console.log('Theme applied:', themeName);
+            }
+            
+            // Theme selector
+            const themeSelector = document.getElementById('colorTheme');
+            if (themeSelector) {
+                // Load saved theme
+                const savedTheme = localStorage.getItem('selectedTheme') || 'modern-dark';
+                themeSelector.value = savedTheme;
+                applyTheme(savedTheme);
+                
+                // Listen for theme changes
+                themeSelector.addEventListener('change', function() {
+                    applyTheme(this.value);
+                });
+            }
+            
+            // =====================================================
+            // WEB AUDIO API SOUND GENERATOR
+            // =====================================================
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Unlock audio context on first user interaction
+            function unlockAudio() {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().then(() => {
+                        console.log('Audio context unlocked!');
+                    });
+                }
+            }
+            document.addEventListener('click', unlockAudio, { once: true });
+            document.addEventListener('keydown', unlockAudio, { once: true });
+            
+            function playSound(soundType) {
+                const volume = (parseInt(document.getElementById('soundVolume')?.value) || 50) / 100;
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = volume;
+                gainNode.connect(audioCtx.destination);
+                
+                const osc = audioCtx.createOscillator();
+                const now = audioCtx.currentTime;
+                
+                switch(soundType) {
+                    case 'beep':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.15);
+                        break;
+                    case 'ding':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now);
+                        osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.3);
+                        break;
+                    case 'chime':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now);
+                        osc.frequency.setValueAtTime(1200, now + 0.1);
+                        osc.frequency.setValueAtTime(1500, now + 0.2);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.35);
+                        break;
+                    case 'coin':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(988, now);
+                        osc.frequency.setValueAtTime(1319, now + 0.08);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.2);
+                        break;
+                    case 'buzz':
+                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.2);
+                        break;
+                    case 'harsh-buzz':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(100, now);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.3);
+                        break;
+                    case 'electric-shock':
+                        osc.type = 'sawtooth';
+                        for(let i = 0; i < 5; i++) {
+                            osc.frequency.setValueAtTime(2000 + Math.random()*1000, now + i*0.05);
+                        }
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.25);
+                        break;
+                    case 'metal-clang':
+                        osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now);
+                        osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.4);
+                        break;
+                    case 'chainsaw':
+                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(80, now);
+                        osc.frequency.linearRampToValueAtTime(120, now + 0.1);
+                        osc.frequency.linearRampToValueAtTime(80, now + 0.2);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.5);
+                        break;
+                    case 'destroyer':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(60, now);
+                        osc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.5);
+                        break;
+                    case 'ux1':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
+                        osc.frequency.linearRampToValueAtTime(880, now + 0.1);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.15);
+                        break;
+                    case 'ux2':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.1);
+                        break;
+                    case 'ux3':
+                        osc.type = 'triangle'; osc.frequency.setValueAtTime(500, now);
+                        osc.frequency.setValueAtTime(700, now + 0.05);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.12);
+                        break;
+                    case 'ux4':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now);
+                        osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.15);
+                        break;
+                    case 'ux5':
+                        osc.type = 'square'; osc.frequency.setValueAtTime(300, now);
+                        osc.frequency.setValueAtTime(400, now + 0.05);
+                        osc.frequency.setValueAtTime(500, now + 0.1);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.15);
+                        break;
+                    case 'ux6':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+                        osc.frequency.setValueAtTime(600, now + 0.1);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.2);
+                        break;
+                    case 'uxento':
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(523, now);
+                        osc.frequency.setValueAtTime(659, now + 0.1);
+                        osc.frequency.setValueAtTime(784, now + 0.2);
+                        osc.connect(gainNode); osc.start(now); osc.stop(now + 0.3);
+                        break;
+                    default: // none
+                        return;
+                }
+            }
+            
+            // =====================================================
+            // SOUNDS TAB FUNCTIONALITY
+            // =====================================================
+            
+            // Volume slider
+            const volumeSlider = document.getElementById('soundVolume');
+            const volumeValue = document.getElementById('volumeValue');
+            if (volumeSlider && volumeValue) {
+                volumeSlider.addEventListener('input', function() {
+                    volumeValue.textContent = this.value + '%';
+                });
+            }
+            
+            // Sound selector modal
+            const soundModal = document.getElementById('soundSelectorModal');
+            const defaultSoundBtn = document.getElementById('defaultSoundBtn');
+            const closeSoundModal = document.getElementById('closeSoundModal');
+            const soundGrid = document.getElementById('soundGrid');
+            const selectedSoundSpan = document.getElementById('selectedSound');
+            
+            if (defaultSoundBtn) {
+                defaultSoundBtn.addEventListener('click', function() {
+                    soundModal.style.display = 'flex';
+                });
+            }
+            
+            if (closeSoundModal) {
+                closeSoundModal.addEventListener('click', function() {
+                    soundModal.style.display = 'none';
+                });
+            }
+            
+            soundModal?.addEventListener('click', function(e) {
+                if (e.target === soundModal) {
+                    soundModal.style.display = 'none';
+                }
+            });
+            
+            // Sound option selection with playback - NO AUTO CLOSE
+            soundGrid?.querySelectorAll('.sound-option').forEach(btn => {
+                // Play sound and select on button click
+                btn.addEventListener('click', function() {
+                    playSound(this.dataset.sound);
+                    
+                    soundGrid.querySelectorAll('.sound-option').forEach(b => {
+                        b.classList.remove('selected');
+                        b.querySelector('.check-icon')?.remove();
+                    });
+                    this.classList.add('selected');
+                    if (!this.querySelector('.check-icon')) {
+                        this.insertAdjacentHTML('beforeend', '<span class="check-icon">✓</span>');
+                    }
+                    // Don't save or close - wait for Save button
+                });
+            });
+            
+            // Cancel button - just close without saving
+            document.getElementById('cancelSoundModal')?.addEventListener('click', function() {
+                soundModal.style.display = 'none';
+            });
+            
+            // Save button - save selection and close
+            document.getElementById('saveSoundModal')?.addEventListener('click', function() {
+                const selectedBtn = soundGrid?.querySelector('.sound-option.selected');
+                if (selectedBtn) {
+                    const soundName = selectedBtn.textContent.replace('▶', '').replace('✓', '').trim();
+                    selectedSoundSpan.textContent = soundName;
+                    localStorage.setItem('defaultSound', selectedBtn.dataset.sound);
+                }
+                soundModal.style.display = 'none';
+            });
+            
+            // Color picker modal
+            const colorModal = document.getElementById('colorPickerModal');
+            const highlightColorBtn = document.getElementById('highlightColorBtn');
+            const closeColorModal = document.getElementById('closeColorModal');
+            const colorGrid = document.getElementById('colorGrid');
+            const selectedColorPreview = document.getElementById('selectedColorPreview');
+            const selectedColorName = document.getElementById('selectedColorName');
+            
+            const colorNames = {
+                '#ef4444': 'Red',
+                '#f97316': 'Orange',
+                '#eab308': 'Yellow',
+                '#22c55e': 'Green',
+                '#10b981': 'Emerald',
+                '#22d3ee': 'Cyan',
+                '#3b82f6': 'Blue',
+                '#8b5cf6': 'Purple',
+                '#ec4899': 'Pink',
+                '#f472b6': 'Rose',
+                '#ffffff': 'White',
+                '#fbbf24': 'Amber'
+            };
+            
+            if (highlightColorBtn) {
+                highlightColorBtn.addEventListener('click', function() {
+                    colorModal.style.display = 'flex';
+                });
+            }
+            
+            if (closeColorModal) {
+                closeColorModal.addEventListener('click', function() {
+                    colorModal.style.display = 'none';
+                });
+            }
+            
+            colorModal?.addEventListener('click', function(e) {
+                if (e.target === colorModal) {
+                    colorModal.style.display = 'none';
+                }
+            });
+            
+            // Color option selection
+            colorGrid?.querySelectorAll('.color-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    colorGrid.querySelectorAll('.color-option').forEach(b => {
+                        b.classList.remove('selected');
+                        b.querySelector('.check-icon')?.remove();
+                    });
+                    this.classList.add('selected');
+                    if (!this.querySelector('.check-icon')) {
+                        this.insertAdjacentHTML('beforeend', '<span class="check-icon">✓</span>');
+                    }
+                    const color = this.dataset.color;
+                    selectedColorPreview.style.background = color;
+                    selectedColorName.textContent = colorNames[color] || color;
+                    localStorage.setItem('defaultHighlightColor', color);
+                    colorModal.style.display = 'none';
+                });
+            });
+            
+            // Custom Sounds modal
+            const customSoundsModal = document.getElementById('customSoundsModal');
+            const customSoundsBtn = document.getElementById('customSoundsBtn');
+            const closeCustomSoundsModal = document.getElementById('closeCustomSoundsModal');
+            const uploadSoundBtn = document.getElementById('uploadSoundBtn');
+            const customSoundUpload = document.getElementById('customSoundUpload');
+            const customSoundCount = document.getElementById('customSoundCount');
+            
+            if (customSoundsBtn) {
+                customSoundsBtn.addEventListener('click', function() {
+                    customSoundsModal.style.display = 'flex';
+                });
+            }
+            
+            if (closeCustomSoundsModal) {
+                closeCustomSoundsModal.addEventListener('click', function() {
+                    customSoundsModal.style.display = 'none';
+                });
+            }
+            
+            customSoundsModal?.addEventListener('click', function(e) {
+                if (e.target === customSoundsModal) {
+                    customSoundsModal.style.display = 'none';
+                }
+            });
+            
+            if (uploadSoundBtn) {
+                uploadSoundBtn.addEventListener('click', function() {
+                    customSoundUpload.click();
+                });
+            }
+            
+            // Add Account modal
+            const addAccountModal = document.getElementById('addAccountModal');
+            const addAccountBtn = document.getElementById('addAccountBtn');
+            const closeAddAccountModal = document.getElementById('closeAddAccountModal');
+            const cancelAddAccount = document.getElementById('cancelAddAccount');
+            const confirmAddAccount = document.getElementById('confirmAddAccount');
+            const accountUsername = document.getElementById('accountUsername');
+            const customAccountsList = document.getElementById('customAccountsList');
+            
+            // Custom accounts storage
+            let customAccounts = JSON.parse(localStorage.getItem('customNotificationAccounts') || '[]');
+            
+            function renderCustomAccounts() {
+                if (!customAccountsList) return;
+                if (customAccounts.length === 0) {
+                    customAccountsList.innerHTML = '<p class="no-sounds-text">No custom accounts added yet</p>';
+                    return;
+                }
+                customAccountsList.innerHTML = customAccounts.map((acc, idx) => `
+                    <div class="custom-account-item">
+                        <span class="account-color-dot" style="background: ${acc.color}"></span>
+                        <span class="account-username">${acc.username}</span>
+                        <span class="account-sound-name">${acc.sound}</span>
+                        <button class="account-settings-btn" data-idx="${idx}" title="Edit account settings">⚙️</button>
+                        <button class="account-remove-btn" data-idx="${idx}">×</button>
+                    </div>
+                `).join('');
+                
+                // Settings button handlers
+                customAccountsList.querySelectorAll('.account-settings-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const idx = parseInt(this.dataset.idx);
+                        const acc = customAccounts[idx];
+                        // Pre-fill the Add Account modal with existing data
+                        accountUsername.value = acc.username;
+                        // Select the color
+                        accountColorGrid?.querySelectorAll('.color-option').forEach(b => {
+                            b.classList.remove('selected');
+                            b.querySelector('.check-icon')?.remove();
+                            if (b.dataset.color === acc.color) {
+                                b.classList.add('selected');
+                                b.insertAdjacentHTML('beforeend', '<span class="check-icon">✓</span>');
+                            }
+                        });
+                        // Store edit index
+                        addAccountModal.dataset.editIdx = idx;
+                        addAccountModal.style.display = 'flex';
+                    });
+                });
+                
+                customAccountsList.querySelectorAll('.account-remove-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        customAccounts.splice(parseInt(this.dataset.idx), 1);
+                        localStorage.setItem('customNotificationAccounts', JSON.stringify(customAccounts));
+                        renderCustomAccounts();
+                    });
+                });
+            }
+            
+            renderCustomAccounts();
+            
+            if (addAccountBtn) {
+                addAccountBtn.addEventListener('click', function() {
+                    addAccountModal.style.display = 'flex';
+                });
+            }
+            
+            if (closeAddAccountModal) {
+                closeAddAccountModal.addEventListener('click', function() {
+                    addAccountModal.style.display = 'none';
+                });
+            }
+            
+            if (cancelAddAccount) {
+                cancelAddAccount.addEventListener('click', function() {
+                    addAccountModal.style.display = 'none';
+                });
+            }
+            
+            addAccountModal?.addEventListener('click', function(e) {
+                if (e.target === addAccountModal) {
+                    addAccountModal.style.display = 'none';
+                }
+            });
+            
+            // Account color grid selection
+            const accountColorGrid = document.getElementById('accountColorGrid');
+            accountColorGrid?.querySelectorAll('.color-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    accountColorGrid.querySelectorAll('.color-option').forEach(b => {
+                        b.classList.remove('selected');
+                        b.querySelector('.check-icon')?.remove();
+                    });
+                    this.classList.add('selected');
+                    if (!this.querySelector('.check-icon')) {
+                        this.insertAdjacentHTML('beforeend', '<span class="check-icon">✓</span>');
+                    }
+                });
+            });
+            
+            // Account sound grid selection - WITH SOUND PLAYBACK
+            const accountSoundGrid = document.getElementById('accountSoundGrid');
+            accountSoundGrid?.querySelectorAll('.sound-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Play the sound when clicked
+                    playSound(this.dataset.sound);
+                    
+                    accountSoundGrid.querySelectorAll('.sound-option').forEach(b => {
+                        b.classList.remove('selected');
+                        b.querySelector('.check-icon')?.remove();
+                    });
+                    this.classList.add('selected');
+                    if (!this.querySelector('.check-icon')) {
+                        this.insertAdjacentHTML('beforeend', '<span class="check-icon">✓</span>');
+                    }
+                });
+            });
+            
+            // Confirm add/update account
+            if (confirmAddAccount) {
+                confirmAddAccount.addEventListener('click', function() {
+                    const username = accountUsername.value.trim();
+                    if (!username) {
+                        alert('Please enter a username');
+                        return;
+                    }
+                    
+                    const normalizedUsername = username.startsWith('@') ? username.toLowerCase() : '@' + username.toLowerCase();
+                    
+                    // Check if we're editing an existing account
+                    const editIdx = addAccountModal.dataset.editIdx;
+                    
+                    // DUPLICATE CHECK - only for NEW accounts (not edits)
+                    if (editIdx === undefined || editIdx === '') {
+                        const existingAccount = customAccounts.find(acc => 
+                            acc.username.toLowerCase() === normalizedUsername
+                        );
+                        
+                        if (existingAccount) {
+                            alert(`Account ${normalizedUsername} already exists! Use the ⚙️ button to edit it.`);
+                            return; // BLOCK - don't add duplicate
+                        }
+                    }
+                    
+                    const selectedColor = accountColorGrid?.querySelector('.color-option.selected')?.dataset.color || '#22d3ee';
+                    const selectedSoundKey = accountSoundGrid?.querySelector('.sound-option.selected')?.dataset.sound || 'beep';
+                    const soundName = accountSoundGrid?.querySelector('.sound-option.selected')?.textContent.replace('▶', '').replace('✓', '').trim() || 'Beep';
+                    
+                    const accountData = {
+                        username: username.startsWith('@') ? username : '@' + username,
+                        color: selectedColor,
+                        sound: soundName,
+                        soundKey: selectedSoundKey
+                    };
+                    
+                    if (editIdx !== undefined && editIdx !== '') {
+                        // UPDATE existing account
+                        customAccounts[parseInt(editIdx)] = accountData;
+                        delete addAccountModal.dataset.editIdx;
+                    } else {
+                        // ADD new account
+                        customAccounts.push(accountData);
+                    }
+                    
+                    localStorage.setItem('customNotificationAccounts', JSON.stringify(customAccounts));
+                    renderCustomAccounts();
+                    
+                    // Update the global reference
+                    window.customAccounts = customAccounts;
+                    
+                    // IMMEDIATELY re-check all tweets for the new/updated account
+                    setTimeout(() => {
+                        // Remove highlighting from all tweets first
+                        document.querySelectorAll('.tweet-card').forEach(card => {
+                            delete card.dataset.customHighlighted;
+                        });
+                        checkAndHighlightTweets();
+                    }, 100);
+                    
+                    // Reset form
+                    accountUsername.value = '';
+                    addAccountModal.style.display = 'none';
+                });
+            }
+            
+            // =====================================================
+            // TWEET HIGHLIGHTING & NOTIFICATION SYSTEM
+            // =====================================================
+            
+            // Function to check tweets against custom accounts and apply highlighting
+            function checkAndHighlightTweets() {
+                const tweetCards = document.querySelectorAll('.tweet-card');
+                
+                tweetCards.forEach(card => {
+                    const handleEl = card.querySelector('.author-handle');
+                    if (!handleEl) return;
+                    
+                    const handle = handleEl.textContent.toLowerCase().trim();
+                    
+                    // Check against custom accounts
+                    const matchedAccount = customAccounts.find(acc => 
+                        acc.username.toLowerCase() === handle
+                    );
+                    
+                    if (matchedAccount && !card.dataset.customHighlighted) {
+                        // Apply FULL BORDER highlight with custom color - like j7tracker style
+                        card.style.border = `2px solid ${matchedAccount.color}`;
+                        card.style.boxShadow = `0 0 20px ${matchedAccount.color}60, inset 0 0 30px ${matchedAccount.color}10`;
+                        card.style.background = `linear-gradient(135deg, rgba(0,0,0,0.9) 0%, ${matchedAccount.color}15 100%)`;
+                        card.dataset.customHighlighted = 'true';
+                        card.dataset.highlightColor = matchedAccount.color;
+                        
+                        // Play sound for this match
+                        if (matchedAccount.soundKey && document.getElementById('enableSounds')?.checked !== false) {
+                            playSound(matchedAccount.soundKey);
+                        }
+                    }
+                });
+            }
+            
+            // Function to play notification for new tweet from custom account
+            function notifyForTweet(handle) {
+                const matchedAccount = customAccounts.find(acc => 
+                    acc.username.toLowerCase() === handle.toLowerCase()
+                );
+                
+                if (matchedAccount && matchedAccount.soundKey) {
+                    playSound(matchedAccount.soundKey);
+                }
+            }
+            
+            // Make these functions available globally
+            window.checkAndHighlightTweets = checkAndHighlightTweets;
+            window.notifyForTweet = notifyForTweet;
+            window.playSound = playSound;
+            window.customAccounts = customAccounts;
+            
+            // Initial check for existing tweets
+            setTimeout(checkAndHighlightTweets, 500);
+            
+            // Watch for new tweets using MutationObserver
+            const tweetFeed = document.getElementById('twitterFeed');
+            if (tweetFeed) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.addedNodes.length > 0) {
+                            mutation.addedNodes.forEach(node => {
+                                if (node.classList && node.classList.contains('tweet-card')) {
+                                    // Check for custom account match
+                                    const handleEl = node.querySelector('.author-handle');
+                                    if (handleEl) {
+                                        const handle = handleEl.textContent.toLowerCase().trim();
+                                        const matchedAccount = customAccounts.find(acc => 
+                                            acc.username.toLowerCase() === handle
+                                        );
+                                        if (matchedAccount && !node.dataset.customHighlighted) {
+                                            // Apply FULL BORDER highlighting - j7tracker style
+                                            node.style.border = `2px solid ${matchedAccount.color}`;
+                                            node.style.boxShadow = `0 0 20px ${matchedAccount.color}60, inset 0 0 30px ${matchedAccount.color}10`;
+                                            node.style.background = `linear-gradient(135deg, rgba(0,0,0,0.9) 0%, ${matchedAccount.color}15 100%)`;
+                                            node.dataset.customHighlighted = 'true';
+                                            
+                                            // Play notification sound
+                                            if (matchedAccount.soundKey && document.getElementById('enableSounds')?.checked !== false) {
+                                                playSound(matchedAccount.soundKey);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                observer.observe(tweetFeed, { childList: true, subtree: true });
+            }
+            
+            // Re-check tweets periodically (every 2 seconds) for any missed tweets
+            setInterval(checkAndHighlightTweets, 2000);
+        });
+    </script>
+
+    <!-- Sound Selector Modal -->
+    <div class="sub-modal" id="soundSelectorModal" style="display: none;">
+        <div class="sub-modal-content">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">🔊</span>
+                <span class="sub-modal-title">Select Default Sound</span>
+                <button class="sub-modal-close" id="closeSoundModal">×</button>
+            </div>
+            <div class="sub-modal-body">
+                <div class="sound-grid" id="soundGrid">
+                    <button class="sound-option selected" data-sound="beep"><span class="play-icon">▶</span> Beep <span class="check-icon">✓</span></button>
+                    <button class="sound-option" data-sound="ding"><span class="play-icon">▶</span> Ding</button>
+                    <button class="sound-option" data-sound="chime"><span class="play-icon">▶</span> Chime</button>
+                    <button class="sound-option" data-sound="coin"><span class="play-icon">▶</span> Coin</button>
+                    <button class="sound-option" data-sound="buzz"><span class="play-icon">▶</span> Buzz</button>
+                    <button class="sound-option" data-sound="harsh-buzz"><span class="play-icon">▶</span> Harsh Buzz</button>
+                    <button class="sound-option" data-sound="electric-shock"><span class="play-icon">▶</span> Electric Shock</button>
+                    <button class="sound-option" data-sound="metal-clang"><span class="play-icon">▶</span> Metal Clang</button>
+                    <button class="sound-option" data-sound="chainsaw"><span class="play-icon">▶</span> Chainsaw</button>
+                    <button class="sound-option" data-sound="destroyer"><span class="play-icon">▶</span> Destroyer</button>
+                    <button class="sound-option" data-sound="none"><span class="play-icon">▶</span> None (Highlight Only)</button>
+                    <button class="sound-option" data-sound="ux1"><span class="play-icon">▶</span> UX1</button>
+                    <button class="sound-option" data-sound="ux2"><span class="play-icon">▶</span> UX2</button>
+                    <button class="sound-option" data-sound="ux3"><span class="play-icon">▶</span> UX3</button>
+                    <button class="sound-option" data-sound="ux4"><span class="play-icon">▶</span> UX4</button>
+                    <button class="sound-option" data-sound="ux5"><span class="play-icon">▶</span> UX5</button>
+                    <button class="sound-option" data-sound="ux6"><span class="play-icon">▶</span> UX6</button>
+                    <button class="sound-option" data-sound="uxento"><span class="play-icon">▶</span> uxento</button>
+                </div>
+            </div>
+            <div class="sub-modal-footer">
+                <button class="modal-cancel-btn" id="cancelSoundModal">Cancel</button>
+                <button class="modal-confirm-btn" id="saveSoundModal">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div class="sub-modal" id="colorPickerModal" style="display: none;">
+        <div class="sub-modal-content small">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">◉</span>
+                <span class="sub-modal-title">Select Default Color</span>
+                <button class="sub-modal-close" id="closeColorModal">×</button>
+            </div>
+            <div class="sub-modal-body">
+                <div class="color-grid" id="colorGrid">
+                    <button class="color-option" data-color="#ef4444" style="background: #ef4444;"></button>
+                    <button class="color-option" data-color="#f97316" style="background: #f97316;"></button>
+                    <button class="color-option" data-color="#eab308" style="background: #eab308;"></button>
+                    <button class="color-option" data-color="#22c55e" style="background: #22c55e;"></button>
+                    <button class="color-option" data-color="#10b981" style="background: #10b981;"></button>
+                    <button class="color-option selected" data-color="#22d3ee" style="background: #22d3ee;"><span class="check-icon">✓</span></button>
+                    <button class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></button>
+                    <button class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></button>
+                    <button class="color-option" data-color="#ec4899" style="background: #ec4899;"></button>
+                    <button class="color-option" data-color="#f472b6" style="background: #f472b6;"></button>
+                    <button class="color-option" data-color="#ffffff" style="background: #ffffff;"></button>
+                    <button class="color-option" data-color="#fbbf24" style="background: #fbbf24;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div class="sub-modal" id="addAccountModal" style="display: none;">
+        <div class="sub-modal-content">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">👥</span>
+                <span class="sub-modal-title">Add Account</span>
+                <button class="sub-modal-close" id="closeAddAccountModal">×</button>
+            </div>
+            <div class="sub-modal-body">
+                <div class="account-form">
+                    <div class="form-section">
+                        <label class="form-label">Twitter Username</label>
+                        <input type="text" id="accountUsername" class="form-input" placeholder="@ username">
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Highlight Color</label>
+                        <div class="color-grid inline" id="accountColorGrid">
+                            <button class="color-option" data-color="#ef4444" style="background: #ef4444;"></button>
+                            <button class="color-option" data-color="#f97316" style="background: #f97316;"></button>
+                            <button class="color-option" data-color="#eab308" style="background: #eab308;"></button>
+                            <button class="color-option" data-color="#22c55e" style="background: #22c55e;"></button>
+                            <button class="color-option selected" data-color="#10b981" style="background: #10b981;"><span class="check-icon">✓</span></button>
+                            <button class="color-option" data-color="#22d3ee" style="background: #22d3ee;"></button>
+                            <button class="color-option" data-color="#3b82f6" style="background: #3b82f6;"></button>
+                            <button class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;"></button>
+                            <button class="color-option" data-color="#ec4899" style="background: #ec4899;"></button>
+                            <button class="color-option" data-color="#ffffff" style="background: #ffffff;"></button>
+                            <button class="color-option" data-color="#fbbf24" style="background: #fbbf24;"></button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Notification Sound</label>
+                        <div class="sound-grid inline" id="accountSoundGrid">
+                            <button class="sound-option selected" data-sound="beep"><span class="play-icon">▶</span> Beep <span class="check-icon">✓</span></button>
+                            <button class="sound-option" data-sound="ding"><span class="play-icon">▶</span> Ding</button>
+                            <button class="sound-option" data-sound="chime"><span class="play-icon">▶</span> Chime</button>
+                            <button class="sound-option" data-sound="coin"><span class="play-icon">▶</span> Coin</button>
+                            <button class="sound-option" data-sound="buzz"><span class="play-icon">▶</span> Buzz</button>
+                            <button class="sound-option" data-sound="harsh-buzz"><span class="play-icon">▶</span> Harsh Buzz</button>
+                            <button class="sound-option" data-sound="electric-shock"><span class="play-icon">▶</span> Electric Shock</button>
+                            <button class="sound-option" data-sound="metal-clang"><span class="play-icon">▶</span> Metal Clang</button>
+                            <button class="sound-option" data-sound="chainsaw"><span class="play-icon">▶</span> Chainsaw</button>
+                            <button class="sound-option" data-sound="destroyer"><span class="play-icon">▶</span> Destroyer</button>
+                            <button class="sound-option" data-sound="none"><span class="play-icon">▶</span> None</button>
+                            <button class="sound-option" data-sound="ux1"><span class="play-icon">▶</span> UX1</button>
+                            <button class="sound-option" data-sound="ux2"><span class="play-icon">▶</span> UX2</button>
+                            <button class="sound-option" data-sound="ux3"><span class="play-icon">▶</span> UX3</button>
+                            <button class="sound-option" data-sound="ux4"><span class="play-icon">▶</span> UX4</button>
+                            <button class="sound-option" data-sound="ux5"><span class="play-icon">▶</span> UX5</button>
+                            <button class="sound-option" data-sound="ux6"><span class="play-icon">▶</span> UX6</button>
+                            <button class="sound-option" data-sound="uxento"><span class="play-icon">▶</span> uxento</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sub-modal-footer">
+                <button class="modal-cancel-btn" id="cancelAddAccount">Cancel</button>
+                <button class="modal-confirm-btn" id="confirmAddAccount">Add Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Sounds Modal -->
+    <div class="sub-modal" id="customSoundsModal" style="display: none;">
+        <div class="sub-modal-content">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">🎵</span>
+                <span class="sub-modal-title">Manage Custom Sounds</span>
+                <button class="sub-modal-close" id="closeCustomSoundsModal">×</button>
+            </div>
+            <div class="sub-modal-body">
+                <div class="upload-section">
+                    <input type="file" id="customSoundUpload" accept=".wav,.mp3" style="display:none;">
+                    <button class="upload-sound-btn" id="uploadSoundBtn">
+                        <span>📁</span> Upload Sound (.wav, .mp3)
+                    </button>
+                </div>
+                <div class="custom-sounds-list" id="customSoundsList">
+                    <p class="no-sounds-text">No custom sounds uploaded yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Editor Modal -->
+    <div class="image-editor-modal" id="imageEditorModal" style="display: none;">
+        <div class="image-editor-content">
+            <div class="image-editor-header">
+                <h3>Image Editor</h3>
+                <button class="close-btn" id="closeImageEditor">&times;</button>
+            </div>
+            <div class="image-editor-body">
+                <div class="canvas-container">
+                    <canvas id="imageEditorCanvas"></canvas>
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <p>Drag & Drop PNG/JPG images here to overlay</p>
+                            <p>or</p>
+                            <button class="upload-btn" id="uploadOverlayBtn">Choose File</button>
+                            <input type="file" id="overlayFileInput" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <div class="control-group">
+                        <label>Overlay Opacity:</label>
+                        <input type="range" id="overlayOpacity" min="0" max="100" value="100">
+                        <span id="opacityValue">100%</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Overall Size:</label>
+                        <div class="scroll-scale-info">
+                            <span>Hover + Scroll Wheel</span>
+                            <span id="sizeValue">100%</span>
+                        </div>
+                    </div>
+                    <div class="control-group hue-control">
+                        <label>Image Hue Shift:</label>
+                        <input type="range" id="hueShift" min="-180" max="180" value="0">
+                        <span id="hueValue">0°</span>
+                    </div>
+                    <div class="control-group">
+                        <label>ROTATE:</label>
+                        <div class="rotation-control">
+                            <div class="rotation-knob" id="rotationKnob">
+                                <div class="rotation-handle"></div>
+                            </div>
+                            <span id="rotationValue">0°</span>
+                        </div>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="control-btn" id="resetOverlay">Reset</button>
+                        <button class="control-btn" id="clearOverlays">Clear All</button>
+                    </div>
+                </div>
+            </div>
+            <div class="image-editor-footer">
+                <button class="cancel-btn" id="cancelImageEdit">Cancel</button>
+                <button class="apply-btn" id="applyImageEdit">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Import Modal -->
+    <div class="sub-modal" id="walletImportModal" style="display: none;">
+        <div class="sub-modal-content">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">🔐</span>
+                <span class="sub-modal-title">Wallet & Presets</span>
+                <button class="sub-modal-close" id="closeWalletModal">×</button>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="wallet-modal-tabs">
+                <button class="wallet-tab-btn active" data-wallet-tab="import">Import Wallet</button>
+                <button class="wallet-tab-btn" data-wallet-tab="presets">⚙️ Custom Presets</button>
+            </div>
+            
+            <div class="sub-modal-body">
+                <!-- Import Wallet Tab Content -->
+                <div class="wallet-tab-content active" id="wallet-import-tab">
+                    <div class="wallet-import-form">
+                    <div class="form-section">
+                        <label class="form-label">Wallet Name (optional)</label>
+                        <input type="text" id="walletName" class="form-input" placeholder="My Wallet">
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">Public Address (Required) <span style="color:#22c55e;">*</span></label>
+                        <input type="text" id="publicAddressInput" class="form-input" placeholder="dogcz95Nra67TJUuvwqnfQo8G6zErVFpGjJoUgF49ke">
+                        <small style="color:#666;font-size:11px;">Your wallet's public address (44 characters)</small>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label">Private Key (Base58) <span style="color:#666;">(for signing, optional)</span></label>
+                        <textarea id="privateKeyInput" class="form-textarea" placeholder="Enter your Solana private key (optional)..." rows="2"></textarea>
+                    </div>
+                    <div class="wallet-warning">
+                        ⚠️ Never share your private key. It is stored locally in your browser only.
+                    </div>
+                </div>
+                
+                <!-- Imported Wallets List -->
+                <div class="imported-wallets-section">
+                    <h4>Imported Wallets</h4>
+                    <div class="imported-wallets-list" id="importedWalletsList">
+                        <p class="no-wallets-text">No wallets imported yet</p>
+                    </div>
+                </div>
+                </div>
+                <!-- End Import Wallet Tab -->
+                
+                <!-- Custom Presets Tab Content -->
+                <div class="wallet-tab-content" id="wallet-presets-tab">
+                    <div style="padding: 20px; text-align: center;">
+                        <button class="add-preset-btn" onclick="document.getElementById('customPresetsModal').style.display='flex'; if(window.customPresetsSystem) window.customPresetsSystem.renderPresetsList(document.getElementById('presetsList'));">
+                            ⚙️ Manage Custom Presets
+                        </button>
+                        <p style="color:#666;margin-top:15px;font-size:13px;">
+                            Create custom deploy presets with keybinds to quickly fill the deploy form from highlighted text in tweets.
+                        </p>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; text-align: left;">
+                            <h4 style="color: #22c55e; margin: 0 0 10px 0;">How to Use:</h4>
+                            <ol style="color: #888; font-size: 12px; margin: 0; padding-left: 20px;">
+                                <li>Click "Manage Custom Presets" to create a preset</li>
+                                <li>Set name, platform, ticker mode, image type, and keybind</li>
+                                <li>Highlight text in any tweet</li>
+                                <li>Press your keybind (e.g., Y)</li>
+                                <li>Deploy form auto-fills instantly! ⚡</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <!-- End Custom Presets Tab -->
+            </div>
+            <div class="sub-modal-footer">
+                <button class="modal-cancel-btn" id="cancelWalletImport">Cancel</button>
+                <button class="modal-confirm-btn" id="confirmWalletImport">Import Wallet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // =====================================================
+    // GLOBAL WALLET & DEPLOY SYSTEM
+    // =====================================================
+    
+    // GLOBAL wallet storage - accessible everywhere
+    window.walletSystem = {
+        wallets: JSON.parse(localStorage.getItem('importedWallets') || '[]'),
+        activeId: localStorage.getItem('activeWalletId') || '',
+        
+        save() {
+            localStorage.setItem('importedWallets', JSON.stringify(this.wallets));
+            localStorage.setItem('activeWalletId', this.activeId);
+        },
+        
+        getActive() {
+            return this.wallets.find(w => w.id === this.activeId) || null;
+        },
+        
+        add(wallet) {
+            this.wallets.push(wallet);
+            if (this.wallets.length === 1) this.activeId = wallet.id;
+            this.save();
+        },
+        
+        remove(id) {
+            this.wallets = this.wallets.filter(w => w.id !== id);
+            if (this.activeId === id) this.activeId = this.wallets[0]?.id || '';
+            this.save();
+        },
+        
+        setActive(id) {
+            this.activeId = id;
+            this.save();
+        }
+    };
+    
+    // Global image data storage
+    window.currentImageData = null;
+    
+    // Global toast function
+    window.showToast = function(title, message, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<strong>${title}</strong><br>${message}`;
+        toast.style.cssText = 'background:#1a1a1a;border:1px solid #333;padding:12px 16px;border-radius:8px;margin-bottom:8px;color:#fff;max-width:300px;';
+        if (type === 'success') toast.style.borderColor = '#22c55e';
+        if (type === 'error') toast.style.borderColor = '#ef4444';
+        if (type === 'info') toast.style.borderColor = '#3b82f6';
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    };
+    
+    // Truncate address for display
+    function truncateAddress(address) {
+        if (!address || address.length < 10) return address;
+        return address.slice(0, 4) + '...' + address.slice(-4);
+    }
+    
+    // Generate ticker from name
+    function generateTicker(name) {
+        if (!name) return '';
+        // Remove special chars, uppercase
+        const clean = name.replace(/[^a-zA-Z0-9\s]/g, '').toUpperCase();
+        const words = clean.split(/\s+/).filter(w => w.length > 0);
+        
+        if (words.length === 1) {
+            // Single word - take first 5 chars or whole word
+            return words[0].slice(0, 5);
+        } else {
+            // Multiple words - take first letter of each (max 5)
+            return words.slice(0, 5).map(w => w[0]).join('');
+        }
+    }
+    
+    (function() {
+        const walletModal = document.getElementById('walletImportModal');
+        const walletModalBtn = document.getElementById('walletModalBtn');
+        const closeWalletModal = document.getElementById('closeWalletModal');
+        const cancelWalletImport = document.getElementById('cancelWalletImport');
+        const confirmWalletImport = document.getElementById('confirmWalletImport');
+        const walletDropdown = document.getElementById('walletDropdown');
+        const walletNameInput = document.getElementById('walletName');
+        const privateKeyInput = document.getElementById('privateKeyInput');
+        const importedWalletsList = document.getElementById('importedWalletsList');
+        
+        // Socket.IO connection to Token API
+        let tokenSocket = null;
+        let isSocketConnected = false;
+        
+        function connectTokenSocket() {
+            // Check if io is available
+            if (typeof io === 'undefined') {
+                console.error('❌ Socket.IO library not loaded yet!');
+                showToast('Error', 'Socket.IO library not loaded. Retrying...', 'error');
+                // Retry after delay
+                setTimeout(connectTokenSocket, 500);
+                return;
+            }
+            
+            try {
+                console.log('🔌 Connecting to Token API via Socket.IO...');
+                console.log('✅ Socket.IO library available:', typeof io);
+                showToast('Connecting...', 'Connecting to Token API...', 'info');
+                
+                // Connect directly to Token API via Socket.IO - EXACT DOCS CONFIG
+                tokenSocket = io('https://token-api-virginia.up.railway.app');
+                
+                tokenSocket.on('connect', () => {
+                    isSocketConnected = true;
+                    console.log('✅✅✅ Socket.IO CONNECTED to Token API! ID:', tokenSocket.id);
+                    showToast('✅ Connected!', 'Token API ready for deploys!', 'success');
+                });
+                
+                tokenSocket.on('token_created', (data) => {
+                    console.log('🎉 Token created:', data);
+                    showToast('🎉 SUCCESS!', `Mint: ${data.mint?.slice(0,8)}...`, 'success');
+                    
+                    // Show Solscan links
+                    if (data.signatures && Array.isArray(data.signatures)) {
+                        data.signatures.forEach((sig, idx) => {
+                            const solscanUrl = `https://solscan.io/tx/${sig}`;
+                            console.log(`Transaction ${idx + 1}: ${solscanUrl}`);
+                            setTimeout(() => {
+                                showToast('View TX', `<a href="${solscanUrl}" target="_blank" style="color:#22d3ee;">Solscan →</a>`, 'info');
+                            }, (idx + 1) * 1000);
+                        });
+                    }
+                });
+                
+                tokenSocket.on('error', (data) => {
+                    console.error('❌ Token API error:', data);
+                    showToast('❌ Deploy Error', data.error || 'Unknown error', 'error');
+                });
+                
+                tokenSocket.on('disconnect', (reason) => {
+                    isSocketConnected = false;
+                    console.log('❌ Disconnected from Token API. Reason:', reason);
+                    showToast('Disconnected', 'Reconnecting to Token API...', 'info');
+                });
+                
+                tokenSocket.on('connect_error', (error) => {
+                    isSocketConnected = false;
+                    console.error('❌ Socket.IO connection error:', error.message);
+                    console.error('Full error:', error);
+                    showToast('Connection Failed', 'Retrying connection...', 'error');
+                });
+                
+                tokenSocket.on('reconnect', (attemptNumber) => {
+                    console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+                    showToast('Reconnected', 'Token API connection restored!', 'success');
+                });
+                
+                tokenSocket.on('reconnect_attempt', (attemptNumber) => {
+                    console.log(`🔄 Reconnection attempt ${attemptNumber}...`);
+                });
+                
+                tokenSocket.on('reconnect_error', (error) => {
+                    console.error('❌ Reconnection error:', error);
+                });
+                
+                tokenSocket.on('reconnect_failed', () => {
+                    console.error('❌ Failed to reconnect after all attempts');
+                    showToast('Connection Failed', 'Cannot connect to Token API. Check console for details.', 'error');
+                });
+                
+            } catch(e) {
+                console.error('❌ Socket.IO init failed:', e);
+                showToast('Error', 'Failed to initialize Socket.IO: ' + e.message, 'error');
+            }
+        }
+        
+        // Initialize Socket.IO on page load
+        console.log('📡 Initializing Socket.IO connection...');
+        connectTokenSocket();
+        
+        // Also provide manual reconnect button
+        window.reconnectTokenAPI = function() {
+            if (tokenSocket) {
+                tokenSocket.disconnect();
+                tokenSocket = null;
+            }
+            connectTokenSocket();
+        };
+        
+        // Render wallet dropdown
+        function renderWalletDropdown() {
+            if (!walletDropdown) return;
+            walletDropdown.innerHTML = '';
+            
+            const wallets = window.walletSystem.wallets;
+            const activeId = window.walletSystem.activeId;
+            
+            if (wallets.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No wallet';
+                walletDropdown.appendChild(option);
+            } else {
+                wallets.forEach(wallet => {
+                    const option = document.createElement('option');
+                    option.value = wallet.id;
+                    option.textContent = wallet.name || truncateAddress(wallet.address);
+                    if (wallet.id === activeId) option.selected = true;
+                    walletDropdown.appendChild(option);
+                });
+            }
+        }
+        
+        // Render imported wallets list in modal
+        function renderImportedWallets() {
+            if (!importedWalletsList) return;
+            const wallets = window.walletSystem.wallets;
+            const activeId = window.walletSystem.activeId;
+            
+            if (wallets.length === 0) {
+                importedWalletsList.innerHTML = '<p class="no-wallets-text">No wallets imported yet</p>';
+                return;
+            }
+            
+            importedWalletsList.innerHTML = wallets.map((wallet) => `
+                <div class="imported-wallet-item ${wallet.id === activeId ? 'active' : ''}">
+                    <div class="wallet-info">
+                        <span class="wallet-name">${wallet.name || truncateAddress(wallet.address)}</span>
+                        <span class="wallet-address">${truncateAddress(wallet.address)}</span>
+                    </div>
+                    <div class="wallet-actions">
+                        ${wallet.id !== activeId ? `<button class="set-active-btn" data-id="${wallet.id}">Set Active</button>` : '<span class="active-badge">ACTIVE</span>'}
+                        <button class="remove-wallet-btn" data-id="${wallet.id}">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            importedWalletsList.querySelectorAll('.set-active-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    window.walletSystem.setActive(this.dataset.id);
+                    renderImportedWallets();
+                    renderWalletDropdown();
+                });
+            });
+            
+            importedWalletsList.querySelectorAll('.remove-wallet-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    window.walletSystem.remove(this.dataset.id);
+                    renderImportedWallets();
+                    renderWalletDropdown();
+                });
+            });
+        }
+        
+        // Open modal
+        walletModalBtn?.addEventListener('click', function() {
+            walletModal.style.display = 'flex';
+            renderImportedWallets();
+        });
+        
+        // Close modal
+        closeWalletModal?.addEventListener('click', () => walletModal.style.display = 'none');
+        cancelWalletImport?.addEventListener('click', () => walletModal.style.display = 'none');
+        walletModal?.addEventListener('click', (e) => {
+            if (e.target === walletModal) walletModal.style.display = 'none';
+        });
+        
+        // Import wallet - NEW 2-STEP API
+        confirmWalletImport?.addEventListener('click', async function() {
+            const privateKey = privateKeyInput?.value?.trim();
+            const name = walletNameInput?.value?.trim();
+            
+            // PRIVATE KEY IS REQUIRED
+            if (!privateKey || privateKey.length < 32) {
+                alert('⚠️ Private Key is REQUIRED!\n\nThe server will encrypt it and return a secure composite key.\n\nYour key is encrypted with AES-256-GCM and never stored on the server.');
+                return;
+            }
+            
+            try {
+                showToast('Importing...', 'Encrypting wallet...', 'info');
+                
+                // Call /import endpoint
+                const response = await fetch('/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        walletPrivateKey: privateKey
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Import failed');
+                }
+                
+                const result = await response.json();
+                console.log('Import response:', result);
+                
+                if (!result.wallet) {
+                    throw new Error('No composite key returned');
+                }
+                
+                // Extract public key from composite (format: publicKey:encryptedKey)
+                const publicKey = result.wallet.split(':')[0];
+                
+                const walletId = 'wallet_' + Date.now();
+                
+                const wallet = {
+                    id: walletId,
+                    name: name || '',
+                    address: publicKey,
+                    compositeKey: result.wallet // Store the encrypted composite key
+                };
+                
+                window.walletSystem.add(wallet);
+                
+                // Clear inputs
+                if (privateKeyInput) privateKeyInput.value = '';
+                if (walletNameInput) walletNameInput.value = '';
+                
+                renderImportedWallets();
+                renderWalletDropdown();
+                
+                showToast('✅ Success', `Wallet imported: ${truncateAddress(publicKey)}`, 'success');
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('❌ Error', error.message, 'error');
+            }
+        });
+        
+        // Handle dropdown change
+        walletDropdown?.addEventListener('change', function() {
+            window.walletSystem.setActive(this.value);
+            renderImportedWallets();
+        });
+        
+        // =====================================================
+        // DEPLOY FUNCTIONALITY
+        // =====================================================
+        
+        function getSelectedPlatform() {
+            const active = document.querySelector('.platform-indicator.active');
+            return active ? active.dataset.platform : 'pump';
+        }
+        
+        function getBuyAmount() {
+            const platform = getSelectedPlatform();
+            const btn = document.querySelector(`.platform-indicator[data-platform="${platform}"]`);
+            return parseFloat(btn?.dataset.amount) || 0.01;
+        }
+        
+        // =====================================================
+        // RESIZABLE PANEL FUNCTIONALITY
+        // =====================================================
+        const deployPanel = document.getElementById('tokenDeployPanel');
+        const resizeHandle = document.getElementById('resizeHandle');
+        
+        if (resizeHandle && deployPanel) {
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+            
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = deployPanel.offsetWidth;
+                document.body.style.cursor = 'ew-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing) return;
+                
+                const delta = e.clientX - startX;
+                const newWidth = startWidth + delta;
+                
+                // Min width: 250px, Max width: 600px
+                if (newWidth >= 250 && newWidth <= 600) {
+                    deployPanel.style.width = newWidth + 'px';
+                    deployPanel.style.flexShrink = '0';
+                    
+                    // Save to localStorage
+                    localStorage.setItem('deployPanelWidth', newWidth);
+                }
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+            
+            // Load saved width on page load
+            const savedWidth = localStorage.getItem('deployPanelWidth');
+            if (savedWidth) {
+                deployPanel.style.width = savedWidth + 'px';
+                deployPanel.style.flexShrink = '0';
+            }
+        }
+        
+        // NEW WEBSOCKET TOKEN API IMPLEMENTATION
+        function deployToken() {
+            // Check if Socket.IO is connected
+            if (!tokenSocket || !tokenSocket.connected) {
+                showToast('Error', 'Not connected to Token API!', 'error');
+                return;
+            }
+            
+            const wallet = window.walletSystem.getActive();
+            if (!wallet) {
+                showToast('Error', 'No wallet! Click 🌐 to import.', 'error');
+                return;
+            }
+            
+            if (!wallet.compositeKey) {
+                showToast('Error', 'Wallet not properly imported!', 'error');
+                return;
+            }
+            
+            const name = document.getElementById('tokenName')?.value?.trim();
+            const symbol = document.getElementById('tokenSymbol')?.value?.trim();
+            const twitter = document.getElementById('twitter')?.value?.trim();
+            const website = document.getElementById('website')?.value?.trim();
+            const platform = getSelectedPlatform();
+            const amount = getBuyAmount();
+            
+            if (!name) { showToast('Error', 'Enter token name', 'error'); return; }
+            if (!symbol) { showToast('Error', 'Enter token symbol', 'error'); return; }
+            
+            // Get image data
+            const imagePreview = document.getElementById('imagePreviewDeploy');
+            const img = imagePreview?.querySelector('img');
+            const imageData = window.currentImageData || img?.src || '';
+            
+            if (!imageData) {
+                showToast('Error', 'Image is required!', 'error');
+                return;
+            }
+            
+            // ============================================================
+            // WEBSOCKET DEPLOY via Socket.IO create_token event
+            // ============================================================
+            showToast('Deploying...', `Creating ${platform.toUpperCase()} token via WebSocket...`, 'info');
+            console.log('⚡ Emitting create_token event to Token API');
+            
+            // Emit create_token event via Socket.IO
+            tokenSocket.emit('create_token', {
+                platform: platform,
+                name: name,
+                symbol: symbol,
+                image: imageData,
+                amount: amount,
+                prio: 0.002,
+                wallets: [wallet.compositeKey], // Send composite key
+                website: website || undefined,
+                twitter: twitter || undefined,
+                bundle: {
+                    enabled: false,
+                    amount: 0
+                }
+            });
+            
+            console.log('✅ create_token event emitted! Waiting for response...');
+        }
+        
+        // DEPLOY BUTTON
+        const mainDeployBtn = document.getElementById('mainBtn');
+        mainDeployBtn?.addEventListener('click', deployToken);
+        
+        // Enter key to deploy
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.altKey) {
+                const activeEl = document.activeElement;
+                if (activeEl?.id === 'tokenName' || activeEl?.id === 'tokenSymbol') {
+                    e.preventDefault();
+                    deployToken();
+                }
+            }
+        });
+        
+        // Platform selection with amount storage
+        document.querySelectorAll('.platform-indicator').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.platform-indicator').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                console.log('Selected platform:', this.dataset.platform, 'Amount:', this.dataset.amount);
+            });
+        });
+        
+        // Character counters + AUTO-GENERATE TICKER
+        const nameInput = document.getElementById('tokenName');
+        const symbolInput = document.getElementById('tokenSymbol');
+        const nameCounter = document.getElementById('nameCharCounter');
+        const symbolCounter = document.getElementById('tickerCharCounter');
+        const autoGenCheckbox = document.querySelector('input[type="checkbox"]:checked + input[type="checkbox"]')?.parentElement?.querySelector('input') 
+            || document.querySelectorAll('.checkbox-row-inline input[type="checkbox"]')[1];
+        
+        nameInput?.addEventListener('input', () => {
+            nameCounter.textContent = `${nameInput.value.length}/32`;
+            
+            // Auto-generate ticker if checkbox is checked
+            const autoGenChecked = document.querySelectorAll('.checkbox-row-inline input[type="checkbox"]')[1]?.checked;
+            if (autoGenChecked && nameInput.value) {
+                symbolInput.value = generateTicker(nameInput.value);
+                symbolCounter.textContent = `${symbolInput.value.length}/13`;
+            }
+        });
+        
+        symbolInput?.addEventListener('input', () => {
+            symbolCounter.textContent = `${symbolInput.value.length}/13`;
+        });
+        
+        // =====================================================
+        // IMAGE DRAG & DROP
+        // =====================================================
+        const deployPanelForDrop = document.querySelector('.token-deploy-panel');
+        const imagePreviewArea = document.getElementById('imagePreviewDeploy');
+        
+        if (deployPanelForDrop) {
+            deployPanelForDrop.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                deployPanelForDrop.style.outline = '2px dashed #22c55e';
+            });
+            
+            deployPanelForDrop.addEventListener('dragleave', () => {
+                deployPanelForDrop.style.outline = 'none';
+            });
+            
+            deployPanelForDrop.addEventListener('drop', (e) => {
+                e.preventDefault();
+                deployPanelForDrop.style.outline = 'none';
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const dataURL = event.target.result;
+                        window.currentImageData = dataURL;
+                        
+                        // Show in preview
+                        if (imagePreviewArea) {
+                            imagePreviewArea.innerHTML = `<img src="${dataURL}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+                        }
+                        showToast('Image', 'Image loaded!', 'success');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Paste image from clipboard
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const dataURL = event.target.result;
+                        window.currentImageData = dataURL;
+                        
+                        if (imagePreviewArea) {
+                            imagePreviewArea.innerHTML = `<img src="${dataURL}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+                        }
+                        showToast('Image', 'Image pasted!', 'success');
+                    };
+                    reader.readAsDataURL(file);
+                    break;
+                }
+            }
+        });
+        
+        // =====================================================
+        // CLEAR BUTTON FUNCTIONALITY
+        // =====================================================
+        const clearBtn = document.querySelector('.header-btn');
+        if (clearBtn && clearBtn.textContent.includes('Clear')) {
+            clearBtn.addEventListener('click', function() {
+                // Clear all form fields
+                const nameInput = document.getElementById('tokenName');
+                const symbolInput = document.getElementById('tokenSymbol');
+                const websiteInput = document.getElementById('website');
+                const twitterInput = document.getElementById('twitter');
+                const imagePreview = document.getElementById('imagePreviewDeploy');
+                const nameCounter = document.getElementById('nameCharCounter');
+                const symbolCounter = document.getElementById('tickerCharCounter');
+                
+                if (nameInput) nameInput.value = '';
+                if (symbolInput) symbolInput.value = '';
+                if (websiteInput) websiteInput.value = '';
+                if (twitterInput) twitterInput.value = '';
+                if (nameCounter) nameCounter.textContent = '0/32';
+                if (symbolCounter) symbolCounter.textContent = '0/13';
+                
+                // Clear image
+                if (imagePreview) {
+                    imagePreview.innerHTML = '<span class="no-image-text">No image selected</span>';
+                }
+                window.currentImageData = null;
+                
+                showToast('Cleared', 'Form cleared!', 'info');
+            });
+        }
+        
+        // Initialize
+        renderWalletDropdown();
+    })();
+    </script>
+
+    <style>
+    /* =====================================================
+       RESIZABLE PANEL STYLING
+       ===================================================== */
+    .resize-handle {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        background: rgba(34, 197, 94, 0.2);
+        cursor: ew-resize;
+        z-index: 100;
+        transition: background 0.2s ease;
+        border-right: 2px solid #22c55e;
+    }
+    
+    .resize-handle:hover {
+        background: rgba(34, 197, 94, 0.5);
+        border-right: 3px solid #22c55e;
+    }
+    
+    .token-deploy-panel {
+        position: relative;
+    }
+    
+    /* Platform section - no inputs */
+    .platform-amount-input {
+        display: none !important;
+    }
+    
+    /* Split image grids - FIT WITHOUT SCROLLBAR */
+    .saved-images-section,
+    .google-images-section {
+        margin-bottom: 12px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .saved-images-section .image-grid,
+    .google-images-section .image-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .grid-image {
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .grid-image.placeholder {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+    }
+    
+    /* Wallet Import Modal Styles */
+    .wallet-import-form { margin-bottom: 20px; }
+    .form-textarea {
+        width: 100%;
+        padding: 10px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 6px;
+        color: #fff;
+        font-family: monospace;
+        font-size: 12px;
+        resize: none;
+    }
+    .wallet-warning {
+        background: rgba(234, 179, 8, 0.1);
+        border: 1px solid #eab308;
+        border-radius: 6px;
+        padding: 10px;
+        color: #eab308;
+        font-size: 12px;
+        margin-top: 10px;
+    }
+    .imported-wallets-section {
+        border-top: 1px solid #333;
+        padding-top: 15px;
+    }
+    .imported-wallets-section h4 {
+        color: #888;
+        font-size: 12px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+    .imported-wallet-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .imported-wallet-item.active {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.1);
+    }
+    .wallet-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .wallet-name {
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .wallet-address {
+        color: #666;
+        font-family: monospace;
+        font-size: 11px;
+    }
+    .wallet-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .set-active-btn {
+        background: #22c55e;
+        border: none;
+        color: #000;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    .set-active-btn:hover {
+        background: #16a34a;
+    }
+    .active-badge {
+        background: #22c55e;
+        color: #000;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+    .remove-wallet-btn {
+        background: transparent;
+        border: 1px solid #444;
+        color: #888;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    .remove-wallet-btn:hover {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: #fff;
+    }
+    .no-wallets-text {
+        color: #666;
+        text-align: center;
+        padding: 20px;
+        font-size: 13px;
+    }
+    </style>
+
+    <!-- Socket.IO Client Library - MUST LOAD FIRST -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+    
+    <!-- Solana Web3.js for transaction signing -->
+    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js" crossorigin="anonymous"></script>
+    
+    <!-- bs58 library - INLINE VERSION to avoid CDN issues -->
+    <script>
+    // bs58 - Base58 encoding/decoding - Inline minimal version
+    (function(global) {
+        const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        const ALPHABET_MAP = {};
+        for (let i = 0; i < ALPHABET.length; i++) {
+            ALPHABET_MAP[ALPHABET.charAt(i)] = i;
+        }
+        const BASE = 58;
+        
+        function decode(string) {
+            if (string.length === 0) return new Uint8Array(0);
+            let bytes = [0];
+            for (let i = 0; i < string.length; i++) {
+                const c = string[i];
+                if (!(c in ALPHABET_MAP)) throw new Error('Non-base58 character');
+                for (let j = 0; j < bytes.length; j++) bytes[j] *= BASE;
+                bytes[0] += ALPHABET_MAP[c];
+                let carry = 0;
+                for (let j = 0; j < bytes.length; j++) {
+                    bytes[j] += carry;
+                    carry = bytes[j] >> 8;
+                    bytes[j] &= 0xff;
+                }
+                while (carry) {
+                    bytes.push(carry & 0xff);
+                    carry >>= 8;
+                }
+            }
+            for (let i = 0; i < string.length && string[i] === '1'; i++) {
+                bytes.push(0);
+            }
+            return new Uint8Array(bytes.reverse());
+        }
+        
+        function encode(buffer) {
+            if (buffer.length === 0) return '';
+            const digits = [0];
+            for (let i = 0; i < buffer.length; i++) {
+                for (let j = 0; j < digits.length; j++) digits[j] <<= 8;
+                digits[0] += buffer[i];
+                let carry = 0;
+                for (let j = 0; j < digits.length; j++) {
+                    digits[j] += carry;
+                    carry = (digits[j] / BASE) | 0;
+                    digits[j] %= BASE;
+                }
+                while (carry) {
+                    digits.push(carry % BASE);
+                    carry = (carry / BASE) | 0;
+                }
+            }
+            let string = '';
+            for (let i = 0; buffer[i] === 0 && i < buffer.length - 1; i++) string += '1';
+            for (let i = digits.length - 1; i >= 0; i--) string += ALPHABET[digits[i]];
+            return string;
+        }
+        
+        global.bs58 = { decode, encode };
+    })(window);
+    console.log('bs58 loaded inline');
+    </script>
+    
+    <!-- Wait for libraries to load before running app scripts -->
+    <script>
+        window.addEventListener('load', function() {
+            if (typeof solanaWeb3 === 'undefined') {
+                console.error('Solana Web3.js failed to load!');
+            }
+            if (typeof bs58 === 'undefined') {
+                console.error('bs58 failed to load!');
+            }
+            console.log('Solana Web3 loaded:', typeof solanaWeb3 !== 'undefined');
+            console.log('bs58 loaded:', typeof bs58 !== 'undefined');
+        });
+    </script>
+    
+    <!-- MUTATION OBSERVER TWEET HANDLER - WAITS FOR ELEMENT -->
+    <script>
+    (function() {
+        console.log('🚀🚀🚀 TWEET HANDLER LOADING...');
+        
+        let handlerAttached = false;
+        
+        function createTweetCard(username, tweetId, url, tweetFeed) {
+            console.log('🎨 Creating tweet card for:', username);
+            
+            const now = new Date();
+            const dateStr = now.toLocaleString('en-US', { 
+                month: 'numeric', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+            
+            const displayName = username
+                .split(/[\s_-]/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+            
+            const avatarText = username.slice(0, 2).toUpperCase();
+            const colors = ['#0ea5e9', '#8b5cf6', '#22c55e', '#f97316', '#ec4899', '#3b82f6'];
+            const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const tweetCard = document.createElement('div');
+            tweetCard.className = 'tweet-card loading';
+            tweetCard.innerHTML = `
+                <div class="tweet-header">
+                    <div class="tweet-author">
+                        <div class="author-avatar" style="background: ${avatarColor}; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #fff;">${avatarText}</div>
+                        <div class="author-info">
+                            <span class="author-name">${displayName}</span>
+                            <span class="author-handle">@${username.toLowerCase()}</span>
+                            <span class="tweet-date">${dateStr}</span>
+                        </div>
+                        <button class="tweet-menu">⋮</button>
+                    </div>
+                    <button class="tweet-deploy-btn">⚡ DEPLOY</button>
+                </div>
+                <div class="tweet-action">@${username.toLowerCase()} posted</div>
+                <div class="tweet-content">Loading tweet content...</div>
+                <div style="font-size: 10px; color: #555; margin-top: 8px;">
+                    📎 <a href="${url}" target="_blank" style="color: #0ea5e9; text-decoration: none;">${url}</a>
+                </div>
+            `;
+            
+            tweetFeed.insertBefore(tweetCard, tweetFeed.firstChild);
+            console.log('✅ Tweet card added, fetching content...');
+            
+            // Fetch with retry logic (3 attempts with increasing timeout)
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            function fetchWithRetry() {
+                const timeout = 10000 + (retryCount * 5000); // 10s, 15s, 20s
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                
+                fetch(`/api/tweet?url=${encodeURIComponent(url)}`, { signal: controller.signal })
+                    .then(response => {
+                        clearTimeout(timeoutId);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('📥 Tweet data:', data);
+                        
+                        if (!data.success || !data.text) {
+                            throw new Error('Invalid tweet data');
+                        }
+                        
+                        // Update tweet content
+                        const contentEl = tweetCard.querySelector('.tweet-content');
+                        if (contentEl) {
+                            contentEl.textContent = data.text;
+                        }
+                        
+                        // Update author name if available
+                        const nameEl = tweetCard.querySelector('.author-name');
+                        if (nameEl && data.author_name) {
+                            nameEl.textContent = data.author_name;
+                        }
+                        
+                        // ALWAYS update avatar with profile picture - NO FALLBACK TO INITIALS
+                        const avatarEl = tweetCard.querySelector('.author-avatar');
+                        if (avatarEl) {
+                            // Try multiple avatar services for redundancy
+                            const avatarServices = [
+                                `https://unavatar.io/twitter/${username}`,
+                                `https://avatars.githubusercontent.com/u/${username}?s=200`, // fallback
+                            ];
+                            
+                            let currentServiceIndex = 0;
+                            
+                            function tryNextAvatar() {
+                                if (currentServiceIndex < avatarServices.length) {
+                                    const avatarUrl = avatarServices[currentServiceIndex];
+                                    const img = new Image();
+                                    img.onload = function() {
+                                        avatarEl.innerHTML = `<img src="${avatarUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                                    };
+                                    img.onerror = function() {
+                                        currentServiceIndex++;
+                                        tryNextAvatar();
+                                    };
+                                    img.src = avatarUrl;
+                                } else {
+                                    // Final fallback - keep colored initials
+                                    console.log('All avatar services failed, keeping initials for', username);
+                                }
+                            }
+                            
+                            tryNextAvatar();
+                        }
+                        
+                        // Show images if available (including video/gif thumbnails)
+                        if (data.images && data.images.length > 0) {
+                            const imagesHtml = `
+                                <div class="tweet-images" style="display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap;">
+                                    ${data.images.map(img => `<img src="${img}" style="max-width: 200px; max-height: 200px; border-radius: 8px; object-fit: cover;" alt="Tweet media">`).join('')}
+                                </div>
+                            `;
+                            contentEl.insertAdjacentHTML('afterend', imagesHtml);
+                        }
+                        
+                        // Check if HTML contains video or gif indicators
+                        if (data.html) {
+                            const hasVideo = data.html.includes('video') || data.html.includes('mp4');
+                            const hasGif = data.html.includes('gif') || data.html.includes('animated');
+                            
+                            if (hasVideo || hasGif) {
+                                const mediaType = hasVideo ? '🎥 Video' : '🎞️ GIF';
+                                contentEl.insertAdjacentHTML('afterend', `<div style="margin-top: 8px; padding: 8px; background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 6px; color: #22c55e; font-size: 12px;">${mediaType} - <a href="${url}" target="_blank" style="color: #22c55e; text-decoration: underline;">View on X</a></div>`);
+                            }
+                        }
+                        
+                        tweetCard.classList.remove('loading');
+                        console.log('✅✅✅ TWEET LOADED!', username);
+                        
+                        if (window.showToast) {
+                            window.showToast('✅ Tweet Loaded!', `@${username}: ${data.text?.slice(0, 30)}...`, 'success');
+                        }
+                    })
+                    .catch(error => {
+                        clearTimeout(timeoutId);
+                        console.error(`❌ Fetch attempt ${retryCount + 1}/${maxRetries} failed:`, error);
+                        
+                        if (retryCount < maxRetries - 1) {
+                            retryCount++;
+                            console.log(`🔄 Retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+                            
+                            // Update UI to show retry
+                            const contentEl = tweetCard.querySelector('.tweet-content');
+                            if (contentEl) {
+                                contentEl.innerHTML = `<span style="color:#f97316;">⏳ Loading... (attempt ${retryCount + 1}/${maxRetries})</span>`;
+                            }
+                            
+                            // Retry after delay
+                            setTimeout(fetchWithRetry, 2000);
+                        } else {
+                            // All retries exhausted
+                            console.error('❌ All retries failed for:', url);
+                            const contentEl = tweetCard.querySelector('.tweet-content');
+                            if (contentEl) {
+                                contentEl.innerHTML = `<span style="color:#ef4444;">⚠️ Failed to load after ${maxRetries} attempts</span><br><small style="color:#666;">The server may be busy. <a href="${url}" target="_blank" style="color:#0ea5e9;">View on X →</a></small>`;
+                            }
+                            tweetCard.classList.remove('loading');
+                        }
+                    });
+            }
+            
+            // Start initial fetch
+            fetchWithRetry();
+            
+            setTimeout(() => {
+                tweetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+        
+        function attachHandler() {
+            if (handlerAttached) return;
+            
+            const chatInput = document.getElementById('siteChatInput');
+            const tweetFeed = document.getElementById('twitterFeed');
+            
+            if (!chatInput || !tweetFeed) {
+                console.log('⏳ Waiting for elements...');
+                return;
+            }
+            
+            console.log('✅✅✅ ATTACHING HANDLER NOW!');
+            
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    console.log('🔥 ENTER PRESSED!');
+                    e.preventDefault();
+                    
+                    const url = this.value.trim();
+                    console.log('📝 URL:', url);
+                    
+                    const match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/i);
+                    
+                    if (match) {
+                        const username = match[1];
+                        const tweetId = match[2];
+                        console.log('✅ MATCH! Username:', username);
+                        
+                        createTweetCard(username, tweetId, url, tweetFeed);
+                        this.value = '';
+                    } else {
+                        console.log('❌ No match');
+                    }
+                }
+            });
+            
+            handlerAttached = true;
+            console.log('🎉🎉🎉 HANDLER ATTACHED SUCCESSFULLY!');
+        }
+        
+        // Try immediately
+        attachHandler();
+        
+        // Watch for DOM changes
+        const observer = new MutationObserver(attachHandler);
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Also try on load
+        window.addEventListener('load', attachHandler);
+        document.addEventListener('DOMContentLoaded', attachHandler);
+        
+        // Retry every 100ms for 5 seconds
+        let retries = 0;
+        const retryInterval = setInterval(() => {
+            if (handlerAttached) {
+                clearInterval(retryInterval);
+            } else {
+                attachHandler();
+                retries++;
+                if (retries > 50) clearInterval(retryInterval);
+            }
+        }, 100);
+    })();
+    </script>
+    
+    <!-- Custom Presets Modal -->
+    <div class="sub-modal" id="customPresetsModal" style="display: none;">
+        <div class="sub-modal-content large">
+            <div class="sub-modal-header">
+                <span class="sub-modal-icon">⚙️</span>
+                <span class="sub-modal-title">Custom Presets</span>
+                <button class="sub-modal-close" id="closeCustomPresetsModal">×</button>
+            </div>
+            
+            <!-- Presets List View -->
+            <div id="presetsListView" class="sub-modal-body">
+                <div class="presets-header">
+                    <button class="add-preset-btn" id="addPresetBtn">+ Add New Preset</button>
+                </div>
+                <div class="presets-list" id="presetsList">
+                    <p class="no-presets-text">No custom presets yet. Click "Add New Preset" to create one.</p>
+                </div>
+            </div>
+            
+            <!-- Add/Edit Preset Form -->
+            <div id="addPresetForm" class="sub-modal-body" style="display: none;">
+                <div class="preset-form">
+                    <div class="form-section">
+                        <label class="form-label">Preset Name</label>
+                        <input type="text" id="presetNameInput" class="form-input" placeholder="e.g., COIN OF AMERICA">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-section half">
+                            <label class="form-label">Name Prefix</label>
+                            <input type="text" id="namePrefix" class="form-input" placeholder="e.g., Justice For">
+                        </div>
+                        <div class="form-section half">
+                            <label class="form-label">Name Suffix</label>
+                            <input type="text" id="nameSuffix" class="form-input" placeholder="e.g., ification">
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Deploy Platform</label>
+                        <select id="platformSelect" class="form-select">
+                            <option value="default">Use Account Default</option>
+                            <option value="pump">Pump</option>
+                            <option value="usd1">USD1</option>
+                            <option value="bonk">BONK</option>
+                            <option value="bnb">BNB</option>
+                            <option value="bags">Bags</option>
+                            <option value="jupiter">Jupiter</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Ticker Mode</label>
+                        <select id="tickerModeSelect" class="form-select">
+                            <option value="selected">Selected Text</option>
+                            <option value="abbreviation">Abbreviation</option>
+                            <option value="first-word">First Word</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <input type="text" id="customTickerInput" class="form-input" placeholder="Custom ticker..." style="margin-top: 8px; display: none;">
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Image Type</label>
+                        <select id="imageTypeSelect" class="form-select">
+                            <option value="post">Image in Post</option>
+                            <option value="ascii">ASCII Art</option>
+                            <option value="soltext">SOLTEXT (gradient)</option>
+                            <option value="letter">Letter Image</option>
+                            <option value="custom">Custom Image</option>
+                        </select>
+                        <input type="text" id="customImageUrlInput" class="form-input" placeholder="https://example.com/image.png" style="margin-top: 8px; display: none;">
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-label">Keybind</label>
+                        <div class="keybind-capture">
+                            <span id="keybindDisplay" class="keybind-display">Not Set</span>
+                            <button class="keybind-btn" id="setKeybindBtn">Set Keybind</button>
+                            <button class="keybind-clear-btn" id="clearKeybindBtn" style="display: none;">Clear</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <label class="form-checkbox">
+                            <input type="checkbox" id="translateChineseCheck">
+                            <span>Translate name to Chinese</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="preset-form-footer">
+                    <button class="modal-cancel-btn" id="cancelPresetForm">Cancel</button>
+                    <button class="modal-confirm-btn" id="savePresetBtn">Save Preset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Wallet Modal Tab Switching
+    document.addEventListener('DOMContentLoaded', function() {
+        const walletTabs = document.querySelectorAll('.wallet-tab-btn');
+        const walletTabContents = document.querySelectorAll('.wallet-tab-content');
+        
+        walletTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.dataset.walletTab;
+                
+                // Remove active from all
+                walletTabs.forEach(t => t.classList.remove('active'));
+                walletTabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active to clicked
+                this.classList.add('active');
+                document.getElementById(`wallet-${tabName}-tab`).classList.add('active');
+            });
+        });
+    });
+    </script>
+
+    <script src="custom-presets.js"></script>
+    <script src="j7-socket-mirror.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>

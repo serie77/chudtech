@@ -1,0 +1,98 @@
+<!-- Custom Presets Modal - ADD THIS BEFORE </body> tag -->
+<div class="sub-modal" id="customPresetsModal" style="display: none;">
+    <div class="sub-modal-content large">
+        <div class="sub-modal-header">
+            <span class="sub-modal-icon">⚙️</span>
+            <span class="sub-modal-title">Custom Presets</span>
+            <button class="sub-modal-close" id="closeCustomPresetsModal">×</button>
+        </div>
+        
+        <!-- Presets List View -->
+        <div id="presetsListView" class="sub-modal-body">
+            <div class="presets-header">
+                <button class="add-preset-btn" id="addPresetBtn">+ Add New Preset</button>
+            </div>
+            <div class="presets-list" id="presetsList">
+                <p class="no-presets-text">No custom presets yet. Click "Add New Preset" to create one.</p>
+            </div>
+        </div>
+        
+        <!-- Add/Edit Preset Form -->
+        <div id="addPresetForm" class="sub-modal-body" style="display: none;">
+            <div class="preset-form">
+                <div class="form-section">
+                    <label class="form-label">Preset Name</label>
+                    <input type="text" id="presetNameInput" class="form-input" placeholder="e.g., COIN OF AMERICA">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-section half">
+                        <label class="form-label">Name Prefix</label>
+                        <input type="text" id="namePrefix" class="form-input" placeholder="e.g., Justice For">
+                    </div>
+                    <div class="form-section half">
+                        <label class="form-label">Name Suffix</label>
+                        <input type="text" id="nameSuffix" class="form-input" placeholder="e.g., ification">
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label">Deploy Platform</label>
+                    <select id="platformSelect" class="form-select">
+                        <option value="default">Use Account Default</option>
+                        <option value="pump">Pump</option>
+                        <option value="usd1">USD1</option>
+                        <option value="bonk">BONK</option>
+                        <option value="bnb">BNB</option>
+                        <option value="bags">Bags</option>
+                        <option value="jupiter">Jupiter</option>
+                    </select>
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label">Ticker Mode</label>
+                    <select id="tickerModeSelect" class="form-select">
+                        <option value="selected">Selected Text</option>
+                        <option value="abbreviation">Abbreviation</option>
+                        <option value="first-word">First Word</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <input type="text" id="customTickerInput" class="form-input" placeholder="Custom ticker..." style="margin-top: 8px; display: none;">
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label">Image Type</label>
+                    <select id="imageTypeSelect" class="form-select">
+                        <option value="post">Image in Post</option>
+                        <option value="ascii">ASCII Art</option>
+                        <option value="soltext">SOLTEXT (gradient)</option>
+                        <option value="letter">Letter Image</option>
+                        <option value="custom">Custom Image</option>
+                    </select>
+                    <input type="text" id="customImageUrlInput" class="form-input" placeholder="https://example.com/image.png" style="margin-top: 8px; display: none;">
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label">Keybind</label>
+                    <div class="keybind-capture">
+                        <span id="keybindDisplay" class="keybind-display">Not Set</span>
+                        <button class="keybind-btn" id="setKeybindBtn">Set Keybind</button>
+                        <button class="keybind-clear-btn" id="clearKeybindBtn" style="display: none;">Clear</button>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-checkbox">
+                        <input type="checkbox" id="translateChineseCheck">
+                        <span>Translate name to Chinese</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="preset-form-footer">
+                <button class="modal-cancel-btn" id="cancelPresetForm">Cancel</button>
+                <button class="modal-confirm-btn" id="savePresetBtn">Save Preset</button>
+            </div>
+        </div>
+    </div>
+</div>

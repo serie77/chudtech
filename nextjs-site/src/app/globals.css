@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+
+@keyframes flash {
+  0% { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.6); }
+  100% { background: transparent; border-color: transparent; }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 0.06;
+    --input: 0 0% 100% / 0.06;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+  }
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: #0a0a0a;
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbars ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+
+::selection { background: rgba(59,130,246,0.3); color: #fff; }
+
+/* ─── Panels ─── */
+.glass-panel {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.glass-header { box-shadow: 0 1px 0 rgba(255,255,255,0.04); }
+
+/* ─── Inputs ─── */
+.input-premium {
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-premium:focus {
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2), 0 0 0 1px rgba(59,130,246,0.25);
+  border-color: rgba(59,130,246,0.35) !important;
+}
+.input-premium::placeholder {
+  color: rgba(255,255,255,0.18);
+}
+
+/* ─── Icon buttons (settings, refresh, search submit) ─── */
+.btn-icon {
+  padding: 5px;
+  color: rgba(255,255,255,0.25);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-icon:hover {
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* ─── Buttons — no lift, just clean color transitions ─── */
+.btn-lift {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+/* Deploy button — subtle sheen */
+.btn-deploy { position: relative; overflow: hidden; }
+.btn-deploy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ─── Tweet cards — flat, just border change on hover ─── */
+.tweet-card {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.tweet-card:hover {
+  border-color: rgba(255,255,255,0.1) !important;
+  background-color: rgba(255,255,255,0.03) !important;
+}
+
+/* ─── Section labels ─── */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.40);
+}
+.panel-header .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-header .section-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(59,130,246,0.6);
+}
+
+/* ─── Panel headers ─── */
+.panel-header {
+  position: relative;
+  padding: 7px 10px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.15);
+}
+
+/* ─── Splitters — thin line, wide hit area, blue on hover ─── */
+.splitter-v {
+  width: 5px;
+  background: transparent;
+  position: relative;
+  cursor: col-resize;
+}
+.splitter-v::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.06);
+  transition: background-color 0.15s ease;
+}
+.splitter-v:hover::before { background: rgba(59,130,246,0.5); }
+.splitter-v:active::before { background: rgba(59,130,246,0.7); }
+
+.splitter-h {
+  height: 5px;
+  background: transparent;
+  position: relative;
+  cursor: row-resize;
+}
+.splitter-h::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.06);
+  transition: background-color 0.15s ease;
+}
+.splitter-h:hover::before { background: rgba(59,130,246,0.5); }
+.splitter-h:active::before, .splitter-h.splitter-active::before { background: rgba(59,130,246,0.7); }
+
+/* ─── Range slider ─── */
+.slider-premium {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+.slider-premium::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+.slider-premium::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 0 5px rgba(59,130,246,0.15);
+}
+.slider-premium::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+.slider-premium::-moz-range-track {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 9999px;
+}
+.slider-premium:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Settings rows ─── */
+.settings-row { transition: background-color 0.1s ease; }
+.settings-row:hover { background-color: rgba(255,255,255,0.02); }

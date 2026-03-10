@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c48" width="48" height="48"></canvas>
+<canvas id="c128" width="128" height="128"></canvas>
+<script>
+function draw(canvas, size) {
+  const ctx = canvas.getContext('2d');
+  // Dark background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.fill();
+  // N text
+  ctx.fillStyle = '#a855f7';
+  ctx.font = `bold ${size*0.55}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', size/2, size/2 + size*0.02);
+}
+draw(document.getElementById('c48'), 48);
+draw(document.getElementById('c128'), 128);
+
+// Download links
+['c48','c128'].forEach(id => {
+  const c = document.getElementById(id);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = id === 'c48' ? 'icon48.png' : 'icon128.png';
+  a.textContent = `Download ${a.download}`;
+  document.body.appendChild(a);
+  document.body.appendChild(document.createElement('br'));
+});
+</script>
+<p>Right-click each canvas above and "Save image as" icon48.png / icon128.png, or use the download links.</p>
+</body>
+</html>

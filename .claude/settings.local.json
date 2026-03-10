@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next build:*)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:www.bark.gg)",
+      "WebFetch(domain:j7tracker.com)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:letsbonk.fun)",
+      "WebFetch(domain:pump.fun)",
+      "WebFetch(domain:api.letsbonk.fun)",
+      "WebFetch(domain:frontend-api.pump.fun)",
+      "WebFetch(domain:client-api-2-74b1891ee9f9.herokuapp.com)",
+      "WebFetch(domain:axiom.trade)",
+      "WebFetch(domain:frontend-api-v2.pump.fun)",
+      "WebFetch(domain:bonk.fun)",
+      "WebFetch(domain:api.bonk.fun)",
+      "WebFetch(domain:www.axiom.trade)",
+      "WebFetch(domain:advanced-api.pump.fun)",
+      "WebFetch(domain:github.com)",
+      "Bash(tr:*)",
+      "Bash(gh api:*)",
+      "Bash(python:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(xxd:*)",
+      "Bash(timeout 15 npx next dev:*)",
+      "WebFetch(domain:console.groq.com)",
+      "Bash(gh repo view:*)",
+      "Bash(grep -r \"icon\\\\|Icon\\\\|<.*size=\" /c/Users/me/Downloads/NNNTRACKER-main/NNNTRACKER-main/nextjs-site/src/components/*.tsx)"
+    ]
+  }
+}
