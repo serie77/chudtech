@@ -26,7 +26,7 @@ function AdminContent() {
 
   useEffect(() => {
     if (!authed) return;
-    fetch("/api/axiom-cookie")
+    fetch("/api/axiom-cookie", { headers: { "x-api-key": key } })
       .then((r) => r.json())
       .then((d) => setConfigured(d.configured));
   }, [authed]);
@@ -44,7 +44,7 @@ function AdminContent() {
     if (!trimmed) return;
     const res = await fetch("/api/axiom-cookie", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-api-key": key },
       body: JSON.stringify({ cookie: trimmed }),
     });
     const data = await res.json();
@@ -58,7 +58,7 @@ function AdminContent() {
   };
 
   const handleClear = async () => {
-    await fetch("/api/axiom-cookie", { method: "DELETE" });
+    await fetch("/api/axiom-cookie", { method: "DELETE", headers: { "x-api-key": key } });
     setStatus("Cookie cleared");
     setConfigured(false);
   };
