@@ -1613,9 +1613,6 @@ export default function ResizablePanels() {
 
     aiLastProcessedRef.current = latestTweet.id;
 
-    const apiKey = typeof window !== 'undefined' ? storeGet('groq-api-key') : null;
-    if (!apiKey) return;
-
     const tweetId = latestTweet.id;
     const tweetRef = latestTweet;
 
@@ -1625,7 +1622,7 @@ export default function ResizablePanels() {
       fetch('/api/ai-suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account: aiAccount, text: aiText, apiKey }),
+        body: JSON.stringify({ account: aiAccount, text: aiText }),
       }).then(r => r.json()),
     ])
       .then(([tweetImages, data]) => {
@@ -2037,13 +2034,9 @@ export default function ResizablePanels() {
         return (ai.suggestions || [{ name: ai.name, ticker: ai.ticker }]).slice(0, 3).map((sug, idx) => {
           const sugNameLower = sug.name.toLowerCase();
           const sugTickerLower = sug.ticker.toLowerCase();
-          const nameWords = sugNameLower.split(/\s+/).filter(w => w.length >= 3);
           const folderMatch = browserImages.find(bi => {
             const fn = bi.nameWithoutExt.toLowerCase();
-            if (fn === sugNameLower || fn === sugTickerLower) return true;
-            if (fn.includes(sugNameLower) || sugNameLower.includes(fn)) return true;
-            if (sugTickerLower.length >= 3 && (fn.includes(sugTickerLower) || sugTickerLower.includes(fn))) return true;
-            return nameWords.some(w => fn.includes(w) || w.includes(fn));
+            return fn === sugNameLower || fn === sugTickerLower;
           });
           const folderImgUrl = folderMatch ? `/api/local-images/serve?file=${encodeURIComponent(folderMatch.filename)}` : null;
           // Distribute tweet images across suggestions (each gets a different image when available)

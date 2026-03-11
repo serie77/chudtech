@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Sparkles, Loader2, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import { getTheme } from "@/utils/themes";
-import { storeGet } from "@/lib/store";
+
 
 interface CanvasProps {
   themeId: string;
@@ -19,17 +19,7 @@ export default function Canvas({ themeId, onImageSelected }: CanvasProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getApiKey = () => {
-    if (typeof window === 'undefined') return '';
-    return storeGet('nnn-gemini-key') || '';
-  };
-
   const handleGenerate = useCallback(async () => {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError("Set your Gemini API key in Settings → Advanced");
-      return;
-    }
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
@@ -39,7 +29,7 @@ export default function Canvas({ themeId, onImageSelected }: CanvasProps) {
       const res = await fetch('/api/gemini-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), apiKey }),
+        body: JSON.stringify({ prompt: prompt.trim() }),
       });
 
       const data = await res.json();

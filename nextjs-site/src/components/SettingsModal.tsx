@@ -1410,18 +1410,10 @@ export default function SettingsModal({
 
 // --- Advanced Tab: API Keys Config ---
 function AdvancedTab() {
-  const [groqKey, setGroqKey] = useState("");
-  const [geminiKey, setGeminiKey] = useState("");
-  const [groqSaved, setGroqSaved] = useState(false);
-  const [geminiSaved, setGeminiSaved] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
   const [axiomStatus, setAxiomStatus] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const storedGroq = storeGet("groq-api-key");
-    if (storedGroq) setGroqKey(storedGroq);
-    const storedGemini = storeGet("nnn-gemini-key");
-    if (storedGemini) setGeminiKey(storedGemini);
     const storedAi = storeGet("ai-enabled");
     if (storedAi !== null) setAiEnabled(storedAi !== 'false');
     // Check Axiom cookie status
@@ -1449,107 +1441,6 @@ function AdvancedTab() {
         </p>
       </div>
 
-      {/* Groq API Key Section */}
-      <div className="bg-white/[0.03] rounded-lg p-4 border border-white/[0.08] space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-semibold text-white">AI Suggestions (Groq)</h4>
-            <p className="text-[10px] text-white/25 mt-0.5">Paste your Groq API key to enable AI name suggestions</p>
-          </div>
-          <div className={`w-2 h-2 rounded-full ${groqKey.trim() ? 'bg-green-500' : 'bg-red-500'}`} />
-        </div>
-
-        <input
-          type="password"
-          value={groqKey}
-          onChange={(e) => setGroqKey(e.target.value)}
-          placeholder="gsk_..."
-          className="w-full bg-black/20 text-white text-xs px-3 py-2 rounded-md border border-white/[0.08] focus:outline-none focus:border-blue-500/50 placeholder-white/20 font-mono input-premium"
-        />
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const trimmed = groqKey.trim();
-              if (trimmed) storeSet("groq-api-key", trimmed);
-              else storeRemove("groq-api-key");
-              setGroqSaved(true);
-              setTimeout(() => setGroqSaved(false), 2000);
-            }}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              groqSaved ? 'bg-green-600 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-            }`}
-          >
-            {groqSaved ? 'Saved!' : 'Save Key'}
-          </button>
-          <button
-            onClick={() => {
-              setGroqKey("");
-              storeRemove("groq-api-key");
-              setGroqSaved(true);
-              setTimeout(() => setGroqSaved(false), 2000);
-            }}
-            className="px-4 py-1.5 text-xs font-medium rounded-md text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-          >
-            Clear
-          </button>
-          <div className="flex-1" />
-          <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-400 hover:text-emerald-300 underline">
-            Get free API key
-          </a>
-        </div>
-      </div>
-
-      {/* Gemini API Key Section */}
-      <div className="bg-white/[0.03] rounded-lg p-4 border border-white/[0.08] space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-semibold text-white">Canvas (Gemini)</h4>
-            <p className="text-[10px] text-white/25 mt-0.5">Paste your Gemini API key to generate images in the Canvas panel</p>
-          </div>
-          <div className={`w-2 h-2 rounded-full ${geminiKey.trim() ? 'bg-green-500' : 'bg-red-500'}`} />
-        </div>
-
-        <input
-          type="password"
-          value={geminiKey}
-          onChange={(e) => setGeminiKey(e.target.value)}
-          placeholder="AIza..."
-          className="w-full bg-black/20 text-white text-xs px-3 py-2 rounded-md border border-white/[0.08] focus:outline-none focus:border-blue-500/50 placeholder-white/20 font-mono input-premium"
-        />
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const trimmed = geminiKey.trim();
-              if (trimmed) storeSet("nnn-gemini-key", trimmed);
-              else storeRemove("nnn-gemini-key");
-              setGeminiSaved(true);
-              setTimeout(() => setGeminiSaved(false), 2000);
-            }}
-            className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              geminiSaved ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'
-            }`}
-          >
-            {geminiSaved ? 'Saved!' : 'Save Key'}
-          </button>
-          <button
-            onClick={() => {
-              setGeminiKey("");
-              storeRemove("nnn-gemini-key");
-              setGeminiSaved(true);
-              setTimeout(() => setGeminiSaved(false), 2000);
-            }}
-            className="px-4 py-1.5 text-xs font-medium rounded-md text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-          >
-            Clear
-          </button>
-          <div className="flex-1" />
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-300 underline">
-            Get free API key
-          </a>
-        </div>
-      </div>
 
       {/* AI On/Off Toggle */}
       <div className="bg-white/[0.03] rounded-lg p-4 border border-white/[0.08]">

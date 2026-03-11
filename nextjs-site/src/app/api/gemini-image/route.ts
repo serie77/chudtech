@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, apiKey } = await request.json();
+    const { prompt } = await request.json();
 
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!prompt || !apiKey) {
-      return NextResponse.json({ error: 'Missing prompt or API key' }, { status: 400 });
+      return NextResponse.json({ error: !prompt ? 'Missing prompt' : 'GEMINI_API_KEY not configured' }, { status: 400 });
     }
 
     const res = await fetch(

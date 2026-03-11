@@ -18,6 +18,9 @@ function loadFromDisk(): string | null {
 }
 
 export function getAxiomCookie(): string | null {
+  // Prefer env variable (works on Railway without file persistence)
+  const envCookie = process.env.AXIOM_REFRESH_TOKEN;
+  if (envCookie) return envCookie;
   if (cached === undefined) {
     cached = loadFromDisk();
   }

@@ -53,10 +53,11 @@ JSON array only. No explanation.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { account, text, apiKey } = await request.json();
+    const { account, text } = await request.json();
 
+    const apiKey = process.env.GROQ_API_KEY;
     if (!text || !apiKey) {
-      return NextResponse.json({ error: 'Missing text or API key' }, { status: 400 });
+      return NextResponse.json({ error: !text ? 'Missing text' : 'GROQ_API_KEY not configured' }, { status: 400 });
     }
 
     const userMessage = `@${account || 'unknown'}: ${text}`;
