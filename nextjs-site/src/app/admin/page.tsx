@@ -16,11 +16,11 @@ function AdminContent() {
     fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: key }),
+      body: JSON.stringify({ key }),
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d.success) setAuthed(true);
+        if (d.valid) setAuthed(true);
       });
   }, [key]);
 

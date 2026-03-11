@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// API keys — add yours here
-const VALID_KEYS = new Set([
-  process.env.CHUD_API_KEY || 'chud-default-key-change-me',
-]);
+// API keys — supports comma-separated list in env var
+const VALID_KEYS = new Set(
+  (process.env.CHUD_API_KEY || 'chud-default-key-change-me')
+    .split(',')
+    .map(k => k.trim())
+    .filter(Boolean)
+);
 
 export async function POST(request: NextRequest) {
   try {
