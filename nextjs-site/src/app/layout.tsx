@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "chud.tech",
   description: "",
+  icons: {
+    icon: "/images/chud.jpg",
+  },
 };
 
 export default function RootLayout({

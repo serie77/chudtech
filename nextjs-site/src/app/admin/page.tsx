@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function AdminPage() {
+function AdminContent() {
   const params = useSearchParams();
   const key = params.get("key") || "";
   const [authed, setAuthed] = useState(false);
@@ -140,5 +140,13 @@ export default function AdminPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, color: "#666", fontFamily: "monospace" }}>Loading...</div>}>
+      <AdminContent />
+    </Suspense>
   );
 }
