@@ -8,17 +8,27 @@ let accessTokenExpiry: number = 0;
 // Use the refresh token to get a fresh access token from Axiom
 async function refreshAccessToken(refreshToken: string): Promise<string | null> {
   try {
+    console.log('[TokenSearch] Attempting refresh, token starts with:', refreshToken.slice(0, 20));
     // Hit Axiom with just the refresh token - it should return a new access token
     const res = await fetch('https://api3.axiom.trade/auth/refresh', {
       method: 'POST',
       headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
         'Origin': 'https://axiom.trade',
         'Referer': 'https://axiom.trade/',
         'Cookie': `auth-refresh-token=${refreshToken}`,
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'Sec-Ch-Ua': '"Google Chrome";v="145", "Chromium";v="145", "Not?A_Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
       },
     });
+    console.log('[TokenSearch] Refresh response status:', res.status);
 
     // Check Set-Cookie headers for new access token
     const setCookies = res.headers.getSetCookie?.() || [];
@@ -137,8 +147,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not configured' }, { status: 401 });
     }
 
+    console.log('[TokenSearch] Raw cookie source length:', cookie.length, 'starts with:', cookie.slice(0, 30));
+
     // Auto-refresh access token using the refresh token
     const cookieString = await buildCookieString(cookie);
+    const hasAccessToken = cookieString.includes('auth-access-token=');
+    console.log('[TokenSearch] Built cookie string, hasAccessToken:', hasAccessToken, 'length:', cookieString.length);
 
     // Axiom search-v3 endpoint with all filter params
     const axiomUrl = new URL('https://api3.axiom.trade/search-v3');
@@ -161,27 +175,34 @@ export async function GET(request: NextRequest) {
         'Cookie': cookieString,
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'Sec-Ch-Ua': '"Google Chrome";v="145", "Chromium";v="145", "Not?A_Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
       },
     });
 
+    console.log('[TokenSearch] Axiom response status:', response.status);
     const text = await response.text();
 
     try {
       const data = JSON.parse(text);
       return NextResponse.json(data);
     } catch {
-      // Not JSON - return raw text as error
-      if (text === 'Resource not found') {
-        // Clear cached access token so next request tries to refresh
-        cachedAccessToken = null;
-        accessTokenExpiry = 0;
+      // Not JSON - clear cached token on any error so next request retries refresh
+      cachedAccessToken = null;
+      accessTokenExpiry = 0;
+
+      if (text === 'Resource not found' || response.status === 404) {
         return NextResponse.json(
-          { error: 'Axiom session expired. Try refreshing your cookie in Settings > Advanced.' },
+          { error: 'Axiom session expired — access token refresh may have failed. Check Railway logs for details.', hasAccessToken },
           { status: 401 }
         );
       }
       return NextResponse.json(
-        { error: `Axiom returned: ${text.slice(0, 200)}` },
+        { error: `Axiom returned (${response.status}): ${text.slice(0, 200)}`, hasAccessToken },
         { status: response.status }
       );
     }

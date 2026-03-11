@@ -10,6 +10,7 @@ function AdminContent() {
   const [cookie, setCookie] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [cookieInfo, setCookieInfo] = useState<{ source?: string; preview?: string; length?: number } | null>(null);
 
   useEffect(() => {
     if (!key) return;
@@ -28,7 +29,10 @@ function AdminContent() {
     if (!authed) return;
     fetch("/api/axiom-cookie", { headers: { "x-api-key": key } })
       .then((r) => r.json())
-      .then((d) => setConfigured(d.configured));
+      .then((d) => {
+        setConfigured(d.configured);
+        setCookieInfo(d);
+      });
   }, [authed]);
 
   if (!authed) {
@@ -82,6 +86,11 @@ function AdminContent() {
           <span style={{ color: configured ? "#22d3ee" : "#f87171" }}>
             {configured === null ? "checking..." : configured ? "configured" : "not set"}
           </span>
+          {cookieInfo && configured && (
+            <span style={{ color: "#666", marginLeft: 8 }}>
+              (source: {cookieInfo.source}, {cookieInfo.length} chars, {cookieInfo.preview})
+            </span>
+          )}
         </div>
 
         <textarea

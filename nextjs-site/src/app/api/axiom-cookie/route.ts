@@ -25,6 +25,8 @@ export async function GET() {
   return NextResponse.json({
     configured: !!cookie,
     length: cookie ? cookie.length : 0,
+    source: cookie ? (process.env.AXIOM_REFRESH_TOKEN && cookie === process.env.AXIOM_REFRESH_TOKEN ? 'env' : 'admin/file') : 'none',
+    preview: cookie ? cookie.slice(0, 40) + '...' : null,
   });
 }
 
