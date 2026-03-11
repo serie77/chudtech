@@ -58,7 +58,7 @@ interface Tweet {
   isQuote?: boolean;
   tweetType?: string;
   platform?: 'twitter' | 'truthsocial' | 'x';
-  media?: Array<{ type: 'image' | 'video' | 'gif'; url: string }>;
+  media?: Array<{ type: 'image' | 'video' | 'gif'; url: string; thumbnail?: string }>;
   originalAuthorHandle?: string;
   quotedTweet?: Tweet;
   repliedToTweet?: Tweet;
@@ -1760,12 +1760,19 @@ export default function ResizablePanels() {
           
           let imageUrl = tweet.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
+          // Video thumbnail fallback
+          const vidThumb = tweet.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (vidThumb && !isProfilePic(vidThumb)) return vidThumb;
           if (tweet.imageUrl && !isProfilePic(tweet.imageUrl)) return tweet.imageUrl;
           imageUrl = tweet.quotedTweet?.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
+          const qtVidThumb = tweet.quotedTweet?.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (qtVidThumb && !isProfilePic(qtVidThumb)) return qtVidThumb;
           if (tweet.quotedTweet?.imageUrl && !isProfilePic(tweet.quotedTweet.imageUrl)) return tweet.quotedTweet.imageUrl;
           imageUrl = tweet.repliedToTweet?.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
+          const rtVidThumb = tweet.repliedToTweet?.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (rtVidThumb && !isProfilePic(rtVidThumb)) return rtVidThumb;
           if (tweet.repliedToTweet?.imageUrl && !isProfilePic(tweet.repliedToTweet.imageUrl)) return tweet.repliedToTweet.imageUrl;
           // Priority 7: Link preview images (article thumbnails)
           const lpImage = tweet.linkPreviews?.find(lp => lp.image)?.image;
@@ -1869,21 +1876,28 @@ export default function ResizablePanels() {
           // Priority 1: Main tweet media
           let imageUrl = tweet.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
-          
+          // Video thumbnail fallback
+          const vidThumb2 = tweet.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (vidThumb2 && !isProfilePic(vidThumb2)) return vidThumb2;
+
           // Priority 2: Main tweet imageUrl (but not if it's the profile pic)
           if (tweet.imageUrl && !isProfilePic(tweet.imageUrl)) return tweet.imageUrl;
-          
+
           // Priority 3: Quoted tweet media (for retweets)
           imageUrl = tweet.quotedTweet?.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
-          
+          const qtVidThumb2 = tweet.quotedTweet?.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (qtVidThumb2 && !isProfilePic(qtVidThumb2)) return qtVidThumb2;
+
           // Priority 4: Quoted tweet imageUrl
           if (tweet.quotedTweet?.imageUrl && !isProfilePic(tweet.quotedTweet.imageUrl)) return tweet.quotedTweet.imageUrl;
-          
+
           // Priority 5: Replied-to tweet media
           imageUrl = tweet.repliedToTweet?.media?.find(m => m.type === 'image' || m.type === 'gif')?.url;
           if (imageUrl && !isProfilePic(imageUrl)) return imageUrl;
-          
+          const rtVidThumb2 = tweet.repliedToTweet?.media?.find(m => m.type === 'video' && m.thumbnail)?.thumbnail;
+          if (rtVidThumb2 && !isProfilePic(rtVidThumb2)) return rtVidThumb2;
+
           // Priority 6: Replied-to tweet imageUrl
           if (tweet.repliedToTweet?.imageUrl && !isProfilePic(tweet.repliedToTweet.imageUrl)) return tweet.repliedToTweet.imageUrl;
 

@@ -107,11 +107,11 @@ const renderText = (text: string) => {
 const collectAllImages = (tweet: Tweet): string[] => {
   const imgs: string[] = [];
   const add = (url: string) => { if (url && !imgs.includes(url)) imgs.push(url); };
-  tweet.media?.forEach(m => { if (m.type !== 'video') add(m.url); });
+  tweet.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.imageUrl) add(tweet.imageUrl);
-  tweet.quotedTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); });
+  tweet.quotedTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.quotedTweet?.imageUrl) add(tweet.quotedTweet.imageUrl);
-  tweet.repliedToTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); });
+  tweet.repliedToTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.repliedToTweet?.imageUrl) add(tweet.repliedToTweet.imageUrl);
   // Link preview images (enriched with OG images at tweet arrival time)
   tweet.linkPreviews?.forEach(lp => { if (lp.image) add(lp.image); });

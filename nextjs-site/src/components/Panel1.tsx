@@ -60,7 +60,7 @@ interface Tweet {
   imageUrl?: string;
   profilePic: string;
   highlightColor?: string;
-  media?: Array<{ type: 'image' | 'video' | 'gif'; url: string }>;
+  media?: Array<{ type: 'image' | 'video' | 'gif'; url: string; thumbnail?: string }>;
   quotedTweet?: Tweet;
   repliedToTweet?: Tweet;
   linkPreviews?: Array<{ url: string; title?: string; description?: string; image?: string; domain?: string }>;
@@ -71,12 +71,12 @@ interface Tweet {
 const collectAllTweetImages = (tweet: Tweet): string[] => {
   const images: string[] = [];
   const add = (url: string) => { if (url && !images.includes(url)) images.push(url); };
-  // Media images first (highest priority)
-  tweet.media?.forEach(m => add(m.url));
+  // Media images first (highest priority) — for videos, use thumbnail instead of raw video URL
+  tweet.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.imageUrl) add(tweet.imageUrl);
-  tweet.quotedTweet?.media?.forEach(m => add(m.url));
+  tweet.quotedTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.quotedTweet?.imageUrl) add(tweet.quotedTweet.imageUrl);
-  tweet.repliedToTweet?.media?.forEach(m => add(m.url));
+  tweet.repliedToTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
   if (tweet.repliedToTweet?.imageUrl) add(tweet.repliedToTweet.imageUrl);
   // Link preview images (OG images from articles/links)
   tweet.linkPreviews?.forEach(lp => { if (lp.image) add(lp.image); });
