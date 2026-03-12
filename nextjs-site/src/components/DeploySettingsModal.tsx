@@ -528,6 +528,18 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
                             onClick={async () => {
                               const pool = getNoncePool(wallet.publicKey);
                               if (pool.length >= 3) {
+                                // Still register with server (it may have restarted and lost them)
+                                try {
+                                  const service = getDeploymentService();
+                                  await service.connect();
+                                  const pk = getWalletPrivateKey(wallet.publicKey) || wallet.privateKey;
+                                  service.setupNonceAccount(
+                                    wallet.publicKey,
+                                    pk,
+                                    (_na, poolSize) => setNonceStatus(prev => ({ ...prev, [wallet.id]: `Pool: ${poolSize} nonces synced` })),
+                                    () => {} // silent fail — nonces still work if server already has them
+                                  );
+                                } catch {}
                                 setNonceStatus(prev => ({ ...prev, [wallet.id]: `Pool: ${pool.length} nonces ready` }));
                                 return;
                               }

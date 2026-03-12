@@ -343,6 +343,7 @@ export class TokenDeploymentService {
       autoSellDelay: params.autoSellDelay || 0,
       bundleEnabled: params.bundleEnabled || false,
       turboModeEnabled: params.turboModeEnabled !== false,
+      existing_nonce_account: params.turboModeEnabled !== false ? getNoncePool(params.wallet.publicKey) : undefined,
       snipeWallets: params.snipeWallets || [],
     };
 
