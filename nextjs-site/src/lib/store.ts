@@ -102,7 +102,26 @@ export async function loadFromServer(): Promise<void> {
     for (const [shortKey, value] of Object.entries(settings)) {
       if (SYNC_EXCLUDE.has(shortKey)) continue;
       const fullKey = prefix + shortKey;
-      if (localStorage.getItem(fullKey) === null) {
+      const local = localStorage.getItem(fullKey);
+
+      // Wallets: merge server + local by publicKey so all devices see all wallets
+      if (shortKey.startsWith("local_wallets") && local) {
+        try {
+          const localArr: { publicKey: string }[] = JSON.parse(local);
+          const serverArr: { publicKey: string }[] = JSON.parse(value);
+          const seen = new Set(localArr.map(w => w.publicKey));
+          const merged = [...localArr, ...serverArr.filter(w => !seen.has(w.publicKey))];
+          if (merged.length > localArr.length) {
+            localStorage.setItem(fullKey, JSON.stringify(merged));
+            scheduleSyncToServer(); // push merged list back to server
+          }
+        } catch {
+          // Bad JSON, skip merge
+        }
+        continue;
+      }
+
+      if (local === null) {
         localStorage.setItem(fullKey, value);
       }
     }
