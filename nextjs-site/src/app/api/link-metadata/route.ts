@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const response = await fetch(url, {
       signal: controller.signal,
@@ -38,14 +38,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ url, domain: getDomain(url) });
     }
 
+    // Use final URL after redirects (t.co → trib.al → dailymail.co.uk)
+    const finalUrl = response.url || url;
     const html = await response.text();
 
     // Extract Open Graph and meta tags
     const title = extractMeta(html, 'og:title') || extractMeta(html, 'twitter:title') || extractHtmlTitle(html);
     const description = extractMeta(html, 'og:description') || extractMeta(html, 'twitter:description') || extractMeta(html, 'description');
-    const image = extractMeta(html, 'og:image') || extractMeta(html, 'twitter:image') || extractMeta(html, 'twitter:image:src');
+    let image = extractMeta(html, 'og:image') || extractMeta(html, 'twitter:image') || extractMeta(html, 'twitter:image:src') || extractLinkImage(html);
     const siteName = extractMeta(html, 'og:site_name');
-    const domain = getDomain(url);
+    const domain = getDomain(finalUrl);
+
+    // Make relative image URLs absolute using the final redirected URL
+    if (image && !image.startsWith('http')) {
+      try { image = new URL(image, finalUrl).href; } catch {}
+    }
 
     const data = {
       url,
@@ -84,18 +91,25 @@ function getDomain(url: string): string {
 }
 
 function extractMeta(html: string, property: string): string | null {
-  // Match og: and twitter: properties
-  const ogMatch = html.match(new RegExp(`<meta[^>]*property=["']${escapeRegex(property)}["'][^>]*content=["']([^"']*)["']`, 'i'));
-  if (ogMatch) return decodeHtmlEntities(ogMatch[1]);
+  const esc = escapeRegex(property);
+  // Match property/name + content (allow spaces around = like `property ="value"`)
+  const patterns = [
+    new RegExp(`<meta[\\s][^>]*(?:property|name)\\s*=\\s*["']${esc}["'][^>]*content\\s*=\\s*["']([^"']*)["']`, 'i'),
+    new RegExp(`<meta[\\s][^>]*content\\s*=\\s*["']([^"']*)["'][^>]*(?:property|name)\\s*=\\s*["']${esc}["']`, 'i'),
+    // itemprop variant
+    new RegExp(`<meta[\\s][^>]*itemprop\\s*=\\s*["']${esc}["'][^>]*content\\s*=\\s*["']([^"']*)["']`, 'i'),
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m) return decodeHtmlEntities(m[1]);
+  }
+  return null;
+}
 
-  // Match name-based meta tags (description, twitter:*)
-  const nameMatch = html.match(new RegExp(`<meta[^>]*name=["']${escapeRegex(property)}["'][^>]*content=["']([^"']*)["']`, 'i'));
-  if (nameMatch) return decodeHtmlEntities(nameMatch[1]);
-
-  // Also match reversed attribute order (content before property/name)
-  const revMatch = html.match(new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*(?:property|name)=["']${escapeRegex(property)}["']`, 'i'));
-  if (revMatch) return decodeHtmlEntities(revMatch[1]);
-
+// Fallback: <link rel="image_src"> or large <img> in article
+function extractLinkImage(html: string): string | null {
+  const linkMatch = html.match(/<link[^>]*rel=["']image_src["'][^>]*href=["']([^"']+)["']/i);
+  if (linkMatch) return decodeHtmlEntities(linkMatch[1]);
   return null;
 }
 

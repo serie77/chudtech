@@ -45,6 +45,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+html[data-font="geist"] body {
+  font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+html[data-font="space-grotesk"] body {
+  font-family: var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
 
 /* ─── Scrollbars ─── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -104,13 +110,18 @@ body {
   pointer-events: none;
 }
 
-/* ─── Tweet cards — flat, just border change on hover ─── */
-.tweet-card {
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+/* ─── Tweet cards — GPU-composited hover (opacity only, no repaint) ─── */
+.tweet-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.035);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
 }
-.tweet-card:hover {
-  border-color: rgba(255,255,255,0.1) !important;
-  background-color: rgba(255,255,255,0.03) !important;
+.tweet-card:hover::after {
+  opacity: 1;
 }
 
 /* ─── Section labels ─── */
@@ -228,3 +239,115 @@ body {
 /* ─── Settings rows ─── */
 .settings-row { transition: background-color 0.1s ease; }
 .settings-row:hover { background-color: rgba(255,255,255,0.02); }
+
+/* ─── Launchblitz deploy panel overrides ─── */
+.lb-deploy {
+  background: hsl(0 0% 4%) !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+/* Kill glass-panel / themed backgrounds */
+.lb-deploy.glass-panel,
+.lb-deploy .glass-panel {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* Header bar — hide the NNN Deploy/Clear/Save bar */
+.lb-deploy .panel-header {
+  display: none !important;
+}
+/* Section labels — match LB's quieter style */
+.lb-deploy .section-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.45);
+  text-transform: none;
+}
+.lb-deploy .section-label::before {
+  display: none !important;
+}
+/* Content area — darker bg, more padding */
+.lb-deploy > div {
+  background: transparent !important;
+}
+/* All inputs — match LB: h-9, rounded-xs, transparent bg */
+.lb-deploy input[type="text"],
+.lb-deploy input[type="number"] {
+  background: rgba(0,0,0,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  height: 36px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+.lb-deploy input[type="text"]:focus,
+.lb-deploy input[type="number"]:focus {
+  border-color: rgba(100,140,255,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(100,140,255,0.15) !important;
+}
+.lb-deploy input::placeholder {
+  color: rgba(255,255,255,0.30) !important;
+}
+/* Deploy button — match LB rounded style */
+.lb-deploy .btn-deploy {
+  border-radius: 6px !important;
+  padding: 10px 16px !important;
+  font-size: 13px !important;
+}
+/* Toggle buttons (Cashback, Bundle, Turbo, etc.) — match LB option-button */
+.lb-deploy button {
+  border-radius: 4px !important;
+}
+/* Platform icon buttons — slightly larger */
+.lb-deploy button img {
+  border-radius: 2px;
+}
+/* Saved tokens bar — blend in */
+.lb-deploy .scrollbar-hide {
+  background: transparent !important;
+}
+
+/* ─── Launchblitz token search panel ─── */
+.lb-token-search {
+  background: hsl(0 0% 4%) !important;
+}
+.lb-token-search > div {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.lb-token-search .panel-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.lb-token-search .panel-header .section-label::before {
+  display: none !important;
+}
+.lb-token-search .section-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.45);
+  text-transform: none;
+}
+.lb-token-search .glass-panel {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.lb-token-search input[type="text"] {
+  background: rgba(0,0,0,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  height: 36px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}

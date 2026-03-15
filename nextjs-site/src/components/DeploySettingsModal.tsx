@@ -61,6 +61,8 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
   const [nonceLoading, setNonceLoading] = useState<string | null>(null);
   const [nonceStatus, setNonceStatus] = useState<Record<string, string>>({});
+  const [claimLoading, setClaimLoading] = useState<string | null>(null);
+  const [claimStatus, setClaimStatus] = useState<Record<string, { message: string; type: 'success' | 'error' }>>({});
 
   // Block 0 bundle wallet selection
   const [block0Wallets, setBlock0Wallets] = useState<Record<string, { enabled: boolean }>>(() => {
@@ -73,6 +75,13 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
       return next;
     });
   };
+
+  // Backup & Restore state
+  const [backupExportStatus, setBackupExportStatus] = useState<string | null>(null);
+  const [backupImportStatus, setBackupImportStatus] = useState<string | null>(null);
+  const [showBackupImportModal, setShowBackupImportModal] = useState(false);
+  const [backupImportText, setBackupImportText] = useState('');
+  const [backupImportType, setBackupImportType] = useState<'nnn' | 'j7'>('nnn');
 
   // Custom Presets form state
   const [showPresetForm, setShowPresetForm] = useState(false);
@@ -182,6 +191,12 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
     return 'hold';
   });
 
+  // Card sidebar color
+  const [cardSidebarColor, setCardSidebarColor] = useState(() => {
+    if (typeof window !== 'undefined') return storeGet('nnn-card-sidebar-color') || '';
+    return '';
+  });
+
   // Save settings to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -240,6 +255,63 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
     }
   }, [autoDeployOnPaste, defaultAiPlatform]);
 
+  // Platform whitelists - maps platform to array of { username, bonkers? }
+  type WhitelistEntry = { username: string; bonkers?: boolean };
+  const [whitelists, setWhitelists] = useState<Record<string, WhitelistEntry[]>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const v = storeGet('nnn-whitelists');
+        if (v) {
+          const parsed = JSON.parse(v);
+          // Migrate old string[] format to object format
+          const migrated: Record<string, WhitelistEntry[]> = {};
+          for (const [k, arr] of Object.entries(parsed)) {
+            migrated[k] = (arr as (string | WhitelistEntry)[]).map(e =>
+              typeof e === 'string' ? { username: e } : e
+            );
+          }
+          return migrated;
+        }
+      } catch {}
+    }
+    return { pump: [], bonk: [], usd1: [], bnb: [], liquid: [], nadfun: [] };
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      storeSet('nnn-whitelists', JSON.stringify(whitelists));
+    }
+  }, [whitelists]);
+
+  const [whitelistInputs, setWhitelistInputs] = useState<Record<string, string>>({ pump: '', bonk: '', usd1: '', bnb: '', liquid: '', nadfun: '' });
+
+  const addToWhitelist = (platform: string, username: string) => {
+    const clean = username.replace(/^@/, '').trim().toLowerCase();
+    if (!clean) return;
+    setWhitelists(prev => {
+      const list = prev[platform] || [];
+      if (list.some(e => e.username === clean)) return prev;
+      return { ...prev, [platform]: [...list, { username: clean }] };
+    });
+    setWhitelistInputs(prev => ({ ...prev, [platform]: '' }));
+  };
+
+  const removeFromWhitelist = (platform: string, username: string) => {
+    setWhitelists(prev => ({
+      ...prev,
+      [platform]: (prev[platform] || []).filter(e => e.username !== username)
+    }));
+  };
+
+  const toggleWhitelistBonkers = (platform: string, username: string) => {
+    setWhitelists(prev => ({
+      ...prev,
+      [platform]: (prev[platform] || []).map(e =>
+        e.username === username ? { ...e, bonkers: !e.bonkers } : e
+      )
+    }));
+  };
+
   // Persist Deploy Button position/scale
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -255,6 +327,14 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
       storeSet('nnn-ai-click-mode', aiClickMode);
     }
   }, [aiClickMode]);
+
+  // Persist card sidebar color
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      storeSet('nnn-card-sidebar-color', cardSidebarColor);
+      window.dispatchEvent(new CustomEvent('nnn-card-sidebar-change', { detail: { color: cardSidebarColor } }));
+    }
+  }, [cardSidebarColor]);
 
   const handleImportWallet = async () => {
     if (!privateKeyInput.trim()) return;
@@ -422,12 +502,15 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
           <Tabs defaultValue="wallets" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="px-5 gap-0.5">
               <TabsTrigger value="wallets">Wallets</TabsTrigger>
+              <TabsTrigger value="claim-fees">Claim Fees</TabsTrigger>
               <TabsTrigger value="quick-buy">Quick Buy</TabsTrigger>
               <TabsTrigger value="auto-deploy">Auto-Deploy</TabsTrigger>
+              <TabsTrigger value="whitelists">Whitelists</TabsTrigger>
               <TabsTrigger value="button">Button</TabsTrigger>
               <TabsTrigger value="insta-deploy">Insta-Deploy</TabsTrigger>
               <TabsTrigger value="extensions">Extensions</TabsTrigger>
               <TabsTrigger value="custom-presets">Presets</TabsTrigger>
+              <TabsTrigger value="backup">Backup</TabsTrigger>
             </TabsList>
 
             {/* Wallets Tab */}
@@ -929,6 +1012,91 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
               </div>
             </TabsContent>
 
+            {/* Claim Fees Tab */}
+            <TabsContent value="claim-fees" className="flex-1 overflow-y-auto p-5">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Claim Fees</h3>
+                  <p className="text-white/20 text-[10px] mb-3">Claim accumulated fees for each wallet</p>
+                </div>
+                {solanaWallets.length === 0 ? (
+                  <div className="text-center py-8 text-white/20 text-xs">No wallets imported</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {solanaWallets.map((wallet) => (
+                      <div key={wallet.id} className="bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+                        <div className="flex items-center gap-2">
+                          {wallet.isActive ? (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V17H6z" />
+                              <line x1="6" y1="17" x2="18" y2="17" />
+                              <line x1="9" y1="21" x2="15" y2="21" />
+                              <line x1="9" y1="17" x2="9" y2="21" />
+                              <line x1="15" y1="17" x2="15" y2="21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                              <circle cx="12" cy="12" r="8" />
+                              <line x1="12" y1="2" x2="12" y2="6" />
+                              <line x1="12" y1="18" x2="12" y2="22" />
+                              <line x1="2" y1="12" x2="6" y2="12" />
+                              <line x1="18" y1="12" x2="22" y2="12" />
+                            </svg>
+                          )}
+                          {wallet.isActive && (
+                            <span className="px-1.5 py-0.5 bg-amber-500/15 text-amber-400 text-[9px] font-bold rounded uppercase">Dev</span>
+                          )}
+                          <p className="text-white/60 text-[11px] font-mono flex-1 truncate">{wallet.publicKey}</p>
+                          <span className="text-emerald-400/60 text-[10px] font-semibold mr-2">{wallet.balance.toFixed(4)} SOL</span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={claimLoading === wallet.id}
+                            onClick={async () => {
+                              setClaimLoading(wallet.id);
+                              setClaimStatus(prev => ({ ...prev, [wallet.id]: { message: 'Claiming...', type: 'success' } }));
+                              try {
+                                const service = getDeploymentService();
+                                await service.connect();
+                                const pk = getWalletPrivateKey(wallet.publicKey) || wallet.privateKey;
+                                service.claimFees(
+                                  wallet.publicKey,
+                                  pk,
+                                  (data) => {
+                                    setClaimLoading(null);
+                                    setClaimStatus(prev => ({ ...prev, [wallet.id]: { message: `Reclaimed ${data.claimed.toFixed(6)} SOL`, type: 'success' } }));
+                                  },
+                                  (error) => {
+                                    setClaimLoading(null);
+                                    setClaimStatus(prev => ({ ...prev, [wallet.id]: { message: error, type: 'error' } }));
+                                  }
+                                );
+                              } catch (err) {
+                                setClaimLoading(null);
+                                setClaimStatus(prev => ({ ...prev, [wallet.id]: { message: 'Failed to connect', type: 'error' } }));
+                              }
+                            }}
+                            className="px-3 h-7 text-[10px]"
+                          >
+                            {claimLoading === wallet.id ? (
+                              <div className="w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              'Claim'
+                            )}
+                          </Button>
+                        </div>
+                        {claimStatus[wallet.id] && (
+                          <p className={`mt-1.5 text-[10px] font-mono ${claimStatus[wallet.id].type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {claimStatus[wallet.id].message}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             {/* Quick Buy Tab */}
             <TabsContent value="quick-buy" className="flex-1 overflow-y-auto p-5">
               <div className="space-y-6">
@@ -1216,6 +1384,52 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
                   </div>
                 )}
 
+                {/* Card Sidebar Color */}
+                <div className="border-t border-white/[0.06] pt-4">
+                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Card Sidebar Color</h3>
+                  <p className="text-white/20 text-[10px] mb-3">Accent bar on the left edge of every tweet card</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={cardSidebarColor || '#7c3aed'}
+                        onChange={(e) => setCardSidebarColor(e.target.value)}
+                        className="w-8 h-8 rounded cursor-pointer border border-white/10 bg-transparent [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+                      />
+                      <span className="text-white/40 text-[11px] font-mono">{cardSidebarColor || 'Off'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'].map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCardSidebarColor(c)}
+                          className={`w-5 h-5 rounded-full border-2 transition-all ${cardSidebarColor === c ? 'border-white scale-110' : 'border-white/10 hover:border-white/30'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                      <button
+                        onClick={() => setCardSidebarColor('')}
+                        className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${!cardSidebarColor ? 'bg-white/10 text-white/60' : 'bg-white/[0.04] text-white/30 hover:text-white/50'}`}
+                      >
+                        Off
+                      </button>
+                    </div>
+                  </div>
+                  {/* Preview */}
+                  {cardSidebarColor && (
+                    <div className="mt-3 flex items-stretch gap-0 rounded-lg border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+                      <div className="w-[3px] flex-shrink-0" style={{ backgroundColor: cardSidebarColor }} />
+                      <div className="p-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-white/10" />
+                        <div>
+                          <div className="w-16 h-1.5 rounded bg-white/15 mb-1" />
+                          <div className="w-24 h-1 rounded bg-white/[0.06]" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="border-t border-white/[0.06] pt-4">
                   <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">AI Highlight Deploy Mode</h3>
                   <p className="text-white/20 text-[10px] mb-3">How the green highlighted text in the feed deploys tokens</p>
@@ -1255,11 +1469,135 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
               </div>
             </TabsContent>
 
+            {/* Whitelists Tab */}
+            <TabsContent value="whitelists" className="flex-1 overflow-y-auto p-5">
+              <div className="space-y-4">
+                <p className="text-white/30 text-[10px] text-center italic mb-2">
+                  Accounts in either of these will always be deployed on the platform they are selected for
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { id: 'pump', label: 'Pump.fun', img: '/images/pump-logo.png', placeholder: "Username" },
+                    { id: 'bonk', label: 'BONK', img: '/images/bonk-logo.png', placeholder: "Username or 'bonk'" },
+                    { id: 'bnb', label: 'BNB', img: '/images/bnb-logo.png', placeholder: "Username or 'binance'" },
+                    { id: 'usd1', label: 'USD1', img: '/images/usd1-logo.png', placeholder: "Username or 'usd1'" },
+                    { id: 'liquid', label: 'Liquid', img: '/images/jupiter-logo.png', placeholder: "Username or 'liquid'" },
+                    { id: 'nadfun', label: 'Nad.fun', img: '/images/bags-logo.png', placeholder: "Username or 'nadfun'" },
+                  ].map((platform) => (
+                    <div key={platform.id} className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <img src={platform.img} alt={platform.label} className="w-4 h-4 object-contain" />
+                        <h4 className="text-xs font-semibold text-white/70">{platform.label} Whitelist</h4>
+                      </div>
+                      {/* Username list */}
+                      <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
+                        {(whitelists[platform.id] || []).map((entry) => (
+                          <div key={entry.username} className="flex items-center justify-between bg-white/[0.03] rounded px-2.5 py-1.5 group">
+                            <span className="text-white/60 text-[11px] font-medium">@{entry.username}</span>
+                            <div className="flex items-center gap-2">
+                              {(platform.id === 'bonk' || platform.id === 'usd1') && (
+                                <button
+                                  onClick={() => toggleWhitelistBonkers(platform.id, entry.username)}
+                                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors ${
+                                    entry.bonkers
+                                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                      : 'bg-white/[0.04] text-white/25 border border-white/[0.06] hover:text-white/40'
+                                  }`}
+                                  title={entry.bonkers ? 'Bonkers ON' : 'Bonkers OFF'}
+                                >
+                                  BONK
+                                </button>
+                              )}
+                              <button
+                                onClick={() => removeFromWhitelist(platform.id, entry.username)}
+                                className="text-red-400/50 hover:text-red-400 transition-colors"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {(whitelists[platform.id] || []).length === 0 && (
+                          <p className="text-white/15 text-[10px] text-center py-1">No accounts whitelisted</p>
+                        )}
+                      </div>
+                      {/* Add input */}
+                      <div className="flex gap-1.5">
+                        <Input
+                          type="text"
+                          placeholder={platform.placeholder}
+                          value={whitelistInputs[platform.id] || ''}
+                          onChange={(e) => setWhitelistInputs(prev => ({ ...prev, [platform.id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              addToWhitelist(platform.id, whitelistInputs[platform.id] || '');
+                            }
+                          }}
+                          className="flex-1 bg-white/[0.04] border-white/[0.06] text-[11px] h-8"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => addToWhitelist(platform.id, whitelistInputs[platform.id] || '')}
+                          className="h-8 px-3"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
             {/* Extensions Tab — still coming soon */}
             <TabsContent value="extensions" className="flex-1 overflow-y-auto p-5">
               <div className="text-center text-white/20 py-10">
                 <p className="text-xs">Coming soon</p>
                 <p className="text-[10px] mt-2 text-white/10">Browser extensions, webhook integrations, and custom scripts</p>
+              </div>
+            </TabsContent>
+
+            {/* Backup & Restore Tab */}
+            <TabsContent value="backup" className="flex-1 overflow-y-auto p-5">
+              <div className="text-white space-y-6">
+                <div>
+                  <h3 className="text-sm font-bold text-white mb-1">Backup & Restore</h3>
+                  <p className="text-[10px] text-white/25">Export or import your deploy settings (buy amounts, presets, keybinds, whitelists, button config)</p>
+                </div>
+
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      const DEPLOY_KEYS = [
+                        'insta-deploy-primary', 'insta-deploy-secondary', 'insta-deploy-double-click',
+                        'ai-fill-modifier', 'deployPresetAmounts', 'deployPresetAmountsUSD1',
+                        'deployBundlePresetAmounts', 'deployBundlePresetAmountsUSD1',
+                        'nnn-buy-amount', 'nnn-usd1-buy-amount', 'nnn-auto-deploy-paste',
+                        'nnn-ai-default-platform', 'nnn-whitelists', 'nnn-deploy-btn-position',
+                        'nnn-deploy-btn-scale', 'nnn-ai-click-mode', 'customPresets',
+                      ];
+                      const settings: Record<string, string> = {};
+                      for (const key of DEPLOY_KEYS) {
+                        const val = storeGet(key);
+                        if (val !== null) settings[key] = val;
+                      }
+                      navigator.clipboard.writeText(JSON.stringify(settings, null, 2))
+                        .then(() => { setBackupExportStatus('Copied to clipboard!'); setTimeout(() => setBackupExportStatus(null), 3000); })
+                        .catch(() => { setBackupExportStatus('Failed to copy'); setTimeout(() => setBackupExportStatus(null), 3000); });
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-xs font-medium text-white/70"
+                  >
+                    <Upload size={12} /> Export Deploy Settings
+                  </button>
+                  <button
+                    onClick={() => setShowBackupImportModal(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-xs font-medium text-white/70"
+                  >
+                    <Upload size={12} className="rotate-180" /> Import Deploy Settings
+                  </button>
+                </div>
+                {backupExportStatus && <p className="text-center text-[10px] text-emerald-400 mt-2">{backupExportStatus}</p>}
+                <p className="text-[10px] text-white/25 text-center">Tracker settings (sounds, notifications, appearance) are exported separately in Settings.</p>
               </div>
             </TabsContent>
           </Tabs>
@@ -1457,6 +1795,133 @@ export default function DeploySettingsModal({ isOpen, onClose, onWalletChange, w
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import Deploy Settings Modal */}
+      {showBackupImportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center" onClick={() => setShowBackupImportModal(false)}>
+          <div className="bg-[#111] border border-white/[0.08] rounded-xl p-5 w-[480px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white">Import Deploy Settings</h3>
+              <button onClick={() => setShowBackupImportModal(false)} className="text-white/30 hover:text-white p-1"><X size={16} /></button>
+            </div>
+
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setBackupImportType('nnn')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${backupImportType === 'nnn' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/[0.03] text-white/40 border border-white/[0.06]'}`}
+              >
+                NNN Tracker
+              </button>
+              <button
+                onClick={() => setBackupImportType('j7')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${backupImportType === 'j7' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-white/[0.03] text-white/40 border border-white/[0.06]'}`}
+              >
+                J7 Tracker
+              </button>
+            </div>
+
+            <p className="text-[10px] text-white/30 mb-2">
+              {backupImportType === 'nnn'
+                ? 'Paste deploy settings JSON exported from NNN Tracker.'
+                : 'Paste your J7 deploy settings JSON. Maps presets, keybinds, buy amounts, whitelists, and button config.'}
+            </p>
+
+            <textarea
+              value={backupImportText}
+              onChange={e => setBackupImportText(e.target.value)}
+              placeholder={backupImportType === 'j7' ? '{"defaultMode":"pump", "globalBuyAmount":3, ...}' : '{"nnn-buy-amount":"3", ...}'}
+              className="w-full h-32 bg-white/[0.03] border border-white/[0.06] rounded-lg p-3 text-xs text-white/80 font-mono resize-none focus:outline-none focus:border-white/[0.15]"
+            />
+
+            {backupImportStatus && <p className={`text-[10px] mt-2 ${backupImportStatus.includes('Invalid') ? 'text-red-400' : 'text-emerald-400'}`}>{backupImportStatus}</p>}
+
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setShowBackupImportModal(false)} className="flex-1 py-2 rounded-lg bg-white/[0.04] text-white/40 text-xs font-medium hover:bg-white/[0.08] transition-colors">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!backupImportText.trim()) return;
+                  try {
+                    const parsed = JSON.parse(backupImportText);
+                    if (backupImportType === 'j7') {
+                      // J7 deploy settings → NNN deploy keys
+                      if (parsed.defaultMode) storeSet('nnn-ai-default-platform', parsed.defaultMode);
+                      if (parsed.globalBuyAmount) storeSet('nnn-buy-amount', String(parsed.globalBuyAmount));
+                      if (parsed.deployButtonPosition) storeSet('nnn-deploy-btn-position', parsed.deployButtonPosition === 'right' ? 'top-right' : parsed.deployButtonPosition);
+                      if (parsed.topRightDeployScale) storeSet('nnn-deploy-btn-scale', String(Math.round(parsed.topRightDeployScale * 100)));
+                      if (parsed.aiSuggestionsEnabled !== undefined) storeSet('ai-enabled', String(parsed.aiSuggestionsEnabled));
+                      if (parsed.enableDoubleClickDeploy !== undefined) storeSet('insta-deploy-double-click', String(parsed.enableDoubleClickDeploy));
+
+                      // Presets
+                      if (parsed.presets && Array.isArray(parsed.presets)) {
+                        const mapped = parsed.presets.map((p: any) => ({
+                          id: p.id || `j7-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                          name: p.name || 'Imported Preset',
+                          namePrefix: p.prefix || '',
+                          nameSuffix: p.suffix || '',
+                          deployPlatform: p.mode === 'default' ? 'Use Account Default' : p.mode || 'Use Account Default',
+                          tickerMode: p.tickerMode === 'first_word' ? 'First Word' : p.tickerMode === 'abbreviation' ? 'Abbreviation' : 'Selected Text',
+                          imageType: p.imageType === 'letter' ? 'Letter Image' : p.imageType === 'image_in_post' ? 'Image in Post' : p.imageType === 'ascii' ? 'ASCII Art' : 'Image in Post',
+                          keybind: p.keybind ? `${p.keybind.ctrl ? 'Ctrl+' : ''}${p.keybind.alt ? 'Alt+' : ''}${p.keybind.shift ? 'Shift+' : ''}${p.keybind.key.toUpperCase()}` : '',
+                        }));
+                        storeSet('customPresets', JSON.stringify(mapped));
+                        onPresetsChange(mapped);
+                      }
+
+                      // Keybinds
+                      if (parsed.keybinds?.autoDeploy) {
+                        const k = parsed.keybinds.autoDeploy;
+                        const parts: string[] = [];
+                        if (k.ctrl) parts.push('Ctrl');
+                        if (k.alt) parts.push('Alt');
+                        if (k.shift) parts.push('Shift');
+                        if (k.key) parts.push(k.key.toUpperCase());
+                        if (parts.length > 0) storeSet('insta-deploy-primary', parts.join(' + '));
+                      }
+                      if (parsed.keybinds?.autoDeploy2?.key) {
+                        const k = parsed.keybinds.autoDeploy2;
+                        const parts: string[] = [];
+                        if (k.ctrl) parts.push('Ctrl');
+                        if (k.alt) parts.push('Alt');
+                        if (k.shift) parts.push('Shift');
+                        parts.push(k.key.toUpperCase());
+                        storeSet('insta-deploy-secondary', parts.join(' + '));
+                      }
+                    } else {
+                      // NNN native deploy settings format
+                      const DEPLOY_KEYS = new Set([
+                        'insta-deploy-primary', 'insta-deploy-secondary', 'insta-deploy-double-click',
+                        'ai-fill-modifier', 'deployPresetAmounts', 'deployPresetAmountsUSD1',
+                        'deployBundlePresetAmounts', 'deployBundlePresetAmountsUSD1',
+                        'nnn-buy-amount', 'nnn-usd1-buy-amount', 'nnn-auto-deploy-paste',
+                        'nnn-ai-default-platform', 'nnn-whitelists', 'nnn-deploy-btn-position',
+                        'nnn-deploy-btn-scale', 'nnn-ai-click-mode', 'customPresets',
+                      ]);
+                      for (const [key, value] of Object.entries(parsed)) {
+                        if (DEPLOY_KEYS.has(key)) {
+                          storeSet(key, value as string);
+                        }
+                      }
+                      // Sync presets to UI if present
+                      if (parsed.customPresets) {
+                        try { onPresetsChange(JSON.parse(parsed.customPresets as string)); } catch {}
+                      }
+                    }
+                    setBackupImportStatus('Deploy settings imported! Reload to apply.');
+                    setBackupImportText('');
+                    setTimeout(() => { setBackupImportStatus(null); setShowBackupImportModal(false); }, 3000);
+                  } catch {
+                    setBackupImportStatus('Invalid JSON');
+                    setTimeout(() => setBackupImportStatus(null), 3000);
+                  }
+                }}
+                className="flex-1 py-2 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import Wallet Modal */}
       <Dialog open={showImportModal} onOpenChange={(open) => {

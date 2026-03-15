@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Twitterbot/1.0)' },
       redirect: 'follow',
     });
     clearTimeout(timeout);
@@ -28,27 +28,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ image: null });
     }
 
+    // Use final URL after redirects (e.g. t.co → trib.al → dailymail.co.uk)
+    const finalUrl = res.url || url;
     const html = await res.text();
 
-    // Extract og:image
+    // Extract image from meta tags (allow spaces around = for sites like Daily Mail)
     let image: string | null = null;
-    const ogMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
-                    html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-    if (ogMatch) {
-      image = ogMatch[1];
+    const metaPatterns = [
+      // property/name + content (allow spaces around = like `property ="value"`)
+      /<meta[\s][^>]*(?:property|name)\s*=\s*["']og:image["'][^>]*content\s*=\s*["']([^"']+)["']/i,
+      /<meta[\s][^>]*content\s*=\s*["']([^"']+)["'][^>]*(?:property|name)\s*=\s*["']og:image["']/i,
+      /<meta[\s][^>]*(?:property|name)\s*=\s*["']twitter:image["'][^>]*content\s*=\s*["']([^"']+)["']/i,
+      /<meta[\s][^>]*content\s*=\s*["']([^"']+)["'][^>]*(?:property|name)\s*=\s*["']twitter:image["']/i,
+      /<meta[\s][^>]*(?:property|name)\s*=\s*["']twitter:image:src["'][^>]*content\s*=\s*["']([^"']+)["']/i,
+      /<meta[\s][^>]*content\s*=\s*["']([^"']+)["'][^>]*(?:property|name)\s*=\s*["']twitter:image:src["']/i,
+      // itemprop variant
+      /<meta[\s][^>]*itemprop\s*=\s*["']image["'][^>]*content\s*=\s*["']([^"']+)["']/i,
+      // <link rel="image_src">
+      /<link[^>]*rel\s*=\s*["']image_src["'][^>]*href\s*=\s*["']([^"']+)["']/i,
+    ];
+    for (const re of metaPatterns) {
+      const m = html.match(re);
+      if (m) { image = m[1]; break; }
     }
 
-    // Fallback: twitter:image
-    if (!image) {
-      const twMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i) ||
-                      html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i);
-      if (twMatch) image = twMatch[1];
+    // Decode HTML entities in image URL
+    if (image) {
+      image = image.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
     }
 
-    // Make relative URLs absolute
+    // Make relative URLs absolute using the FINAL redirected URL
     if (image && !image.startsWith('http')) {
       try {
-        image = new URL(image, url).href;
+        image = new URL(image, finalUrl).href;
       } catch {}
     }
 

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Return the tweet data
     return NextResponse.json({
-      username: `@${data.user.screen_name}`,
+      username: data.user.screen_name,
       displayName: data.user.name,
       handle: `@${data.user.screen_name}`,
       verified: data.user.verified || data.user.is_blue_verified || false,

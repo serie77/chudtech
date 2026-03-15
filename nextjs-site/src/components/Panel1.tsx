@@ -253,9 +253,10 @@ interface Panel1Props {
   browserImages?: Array<{ name: string; nameWithoutExt: string; filename: string }>;
   editMode?: boolean;
   forceSelectImage?: boolean;
+  variant?: 'default' | 'launchblitz';
 }
 
-export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSelect, presetTrigger, onPresetApplied, deployedImageUrl, deployedImageOptions = [], deployedTwitterUrl, onImageDeployed, onTwitterDeployed, clearTrigger, tweets = [], testMode = false, onNameChange, onTokenSearch, vampData, onVampApplied, settingsVersion = 0, browserImages = [], editMode = false, forceSelectImage = false }: Panel1Props) {
+export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSelect, presetTrigger, onPresetApplied, deployedImageUrl, deployedImageOptions = [], deployedTwitterUrl, onImageDeployed, onTwitterDeployed, clearTrigger, tweets = [], testMode = false, onNameChange, onTokenSearch, vampData, onVampApplied, settingsVersion = 0, browserImages = [], editMode = false, forceSelectImage = false, variant = 'default' }: Panel1Props) {
   const theme = getTheme(themeId);
   
   const logos = [
@@ -275,6 +276,8 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
   const [imageOptions, setImageOptions] = useState<string[]>([]);
   const [videoThumbnails, setVideoThumbnails] = useState<Record<string, string>>({}); // videoUrl → dataUrl
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDeployRef = useRef(false);
+  const pendingQuickDeployRef = useRef<{ amount: number; imageMode: "letter" | "sol" | "ascii" } | null>(null);
   const [platformValues, setPlatformValues] = useState([0.001, 0.001, 0.001, 0.001, 0.001, 0.001]);
   const [isDragging, setIsDragging] = useState(false);
   const [buyAmount, setBuyAmount] = useState(() => {
@@ -355,6 +358,11 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
     return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('nnn-keybind-change', onKeybindChange); };
   }, []);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  // Saved tokens
+  const [savedTokens, setSavedTokens] = useState<Array<{ id: string; name: string; symbol: string; image: string | null; platform: number; website: string; twitter: string }>>(() => {
+    if (typeof window !== 'undefined') { try { const v = storeGet('nnn-saved-tokens'); if (v) return JSON.parse(v); } catch {} }
+    return [];
+  });
   const [autoFillOnCopy, setAutoFillOnCopy] = useState(() => {
     if (typeof window !== 'undefined') { const v = storeGet('nnn-autofill'); if (v !== null) return v === 'true'; } return true;
   });
@@ -419,6 +427,67 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
   const googleInputRef = useRef<HTMLInputElement>(null);
 
   const platformNames = ["pump", "bonk", "usd1", "bags", "bnb", "jupiter"];
+
+  // Track user's default platform (what they manually selected, not whitelist-overridden)
+  const defaultPlatformRef = useRef(selectedPlatformIndex);
+  const defaultBonkersRef = useRef(bonkersEnabled);
+  const whitelistActiveRef = useRef(false);
+
+  // When user manually changes platform, update the default (only if not a whitelist override)
+  const handleManualPlatformChange = useCallback((idx: number) => {
+    setSelectedPlatformIndex(idx);
+    if (!whitelistActiveRef.current) {
+      defaultPlatformRef.current = idx;
+    }
+  }, []);
+
+  // Check whitelist and auto-switch platform if username matches, reset to default if not
+  const checkWhitelistAndSwitchPlatform = useCallback((username: string) => {
+    try {
+      const raw = storeGet('nnn-whitelists');
+      if (!raw) {
+        // No whitelists — reset to default if whitelist was active
+        if (whitelistActiveRef.current) {
+          whitelistActiveRef.current = false;
+          setSelectedPlatformIndex(defaultPlatformRef.current);
+          setBonkersEnabled(defaultBonkersRef.current);
+        }
+        return;
+      }
+      const whitelists: Record<string, Array<string | { username: string; bonkers?: boolean }>> = JSON.parse(raw);
+      const lowerUser = username.toLowerCase();
+      const platformIndexMap: Record<string, number> = { pump: 0, bonk: 1, usd1: 2, bags: 3, bnb: 4, liquid: 5, nadfun: 3 };
+      for (const [platformId, entries] of Object.entries(whitelists)) {
+        const match = entries.find(e => {
+          const uname = typeof e === 'string' ? e : e.username;
+          return uname.toLowerCase() === lowerUser;
+        });
+        if (match) {
+          const idx = platformIndexMap[platformId];
+          if (idx !== undefined) {
+            // Save defaults before overriding
+            if (!whitelistActiveRef.current) {
+              defaultPlatformRef.current = selectedPlatformIndex;
+              defaultBonkersRef.current = bonkersEnabled;
+            }
+            whitelistActiveRef.current = true;
+            setSelectedPlatformIndex(idx);
+            // Auto-toggle bonkers if the entry has a bonkers flag
+            if (typeof match === 'object' && match.bonkers !== undefined) {
+              setBonkersEnabled(match.bonkers);
+            }
+          }
+          return;
+        }
+      }
+      // No match — reset to default
+      if (whitelistActiveRef.current) {
+        whitelistActiveRef.current = false;
+        setSelectedPlatformIndex(defaultPlatformRef.current);
+        setBonkersEnabled(defaultBonkersRef.current);
+      }
+    } catch {}
+  }, [selectedPlatformIndex, bonkersEnabled]);
 
   // Persist buy amounts to localStorage
   useEffect(() => {
@@ -550,7 +619,38 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
     setImageOptions([]);
     // Don't reset buyAmount - it persists
   };
-  
+
+  useEffect(() => {
+    storeSet('nnn-saved-tokens', JSON.stringify(savedTokens));
+  }, [savedTokens]);
+
+  const handleSaveToken = () => {
+    if (!name.trim() || !symbol.trim()) { showToast("Fill in name and symbol first", "error"); return; }
+    const token = { id: Date.now().toString(), name: name.trim(), symbol: symbol.trim(), image: uploadedImage, platform: selectedPlatformIndex, website: website.trim(), twitter: twitter.trim() };
+    setSavedTokens(prev => [...prev, token]);
+    showToast(`Saved ${symbol.trim()}`, "success");
+  };
+
+  const handleLoadSavedToken = (token: typeof savedTokens[0]) => {
+    setName(token.name);
+    onNameChange?.(token.name);
+    setSymbol(token.symbol);
+    if (token.image) { setUploadedImage(token.image); setImageOptions([token.image]); }
+    setSelectedPlatformIndex(token.platform);
+    setWebsite(token.website);
+    setTwitter(token.twitter);
+    pendingDeployRef.current = true;
+  };
+
+  const handleRemoveSavedToken = (id: string) => {
+    setSavedTokens(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleClearSavedTokens = () => {
+    setSavedTokens([]);
+    showToast("Cleared all saved tokens", "info");
+  };
+
   // Auto-sync name to symbol (only when autoGenerateTicker is enabled)
   const handleNameChange = (value: string) => {
     setName(value);
@@ -821,7 +921,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
   }, [activeWallet, name, symbol, uploadedImage, buyAmount, usd1BuyAmount, usd1Currency, selectedPlatform, selectedImageMode, website, twitter, deploymentService, showToast, generatePreview, getExtraDeployParams]);
 
   // Deploy with a specific amount (for preset buttons) - doesn't change the default buyAmount
-  const handleDeployWithAmount = useCallback(async (amount: number) => {
+  const handleDeployWithAmount = useCallback(async (amount: number, imageModeOverride?: "letter" | "sol" | "ascii") => {
     // Test mode - show preview instead of deploying (use ref for current value)
     if (testModeRef.current) {
       await generatePreview(amount);
@@ -833,17 +933,19 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
       showToast("Please import a wallet first! Click the Stack button (📚) in the top right.", "error");
       return;
     }
-    
+
     if (!name || !symbol) {
       showToast("Please fill in Token Name and Symbol!", "error");
       return;
     }
-    
+
     setIsDeploying(true);
-    
+
+    const effectiveImageMode = imageModeOverride || selectedImageMode;
+
     try {
       // Generate image if none uploaded, using selected image mode
-      let imageToUse = uploadedImage;
+      let imageToUse = imageModeOverride ? null : uploadedImage;
       if (!imageToUse) {
         const imageTypeMap = {
           'letter': 'Letter Image',
@@ -852,7 +954,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
         };
         try {
           imageToUse = await generatePresetImage(
-            imageTypeMap[selectedImageMode],
+            imageTypeMap[effectiveImageMode],
             symbol.trim(),
             undefined,
             selectedPlatform === 'pump' ? 'Pump.fun' : undefined
@@ -1211,9 +1313,12 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
   useEffect(() => {
     if (deployedTwitterUrl && onTwitterDeployed) {
       setTwitter(deployedTwitterUrl);
+      // Check whitelist — extract username from twitter URL (e.g. https://x.com/username/...)
+      const urlMatch = deployedTwitterUrl.match(/x\.com\/([^/]+)/);
+      if (urlMatch) checkWhitelistAndSwitchPlatform(urlMatch[1]);
       onTwitterDeployed(); // Clear the state immediately
     }
-  }, [deployedTwitterUrl, onTwitterDeployed]);
+  }, [deployedTwitterUrl, onTwitterDeployed, checkWhitelistAndSwitchPlatform]);
 
   // Handle vamp data - fill all fields at once
   useEffect(() => {
@@ -1327,16 +1432,22 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
     };
   }, [autoFillOnCopy, autoGenerateTicker, tweets]);
 
-  // Double-click to auto-fill - same logic as copy but triggered on double-click
+  // Double-click to auto-fill (and optionally deploy) - triggered on double-click
   useEffect(() => {
-    if (!autoFillOnCopy) return;
-    
-    const handleDoubleClick = () => {
+    // Check both autoFillOnCopy and the insta-deploy double-click setting
+    const doubleClickDeployEnabled = typeof window !== 'undefined' && storeGet('insta-deploy-double-click') === 'true';
+    if (!autoFillOnCopy && !doubleClickDeployEnabled) return;
+
+    const handleDoubleClick = (e: MouseEvent) => {
+      // Only trigger from the tweet feed — ignore clicks inside deploy panel, token search, modals, etc.
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-panel-deploy]') || target.closest('[data-panel-search]') || target.closest('[role="dialog"]')) return;
+
       // Small delay to let the browser select the word
       setTimeout(() => {
         const selection = window.getSelection();
         const text = selection?.toString();
-        
+
         if (text && text.trim()) {
           const trimmedText = text.trim();
 
@@ -1344,6 +1455,12 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
           setName(trimmedText);
           onNameChange?.(trimmedText);
           onTokenSearch?.(trimmedText);
+
+          // Auto-focus name input (same as Deploy button click)
+          setTimeout(() => {
+            const nameInput = document.querySelector('input[placeholder="Token name"]') as HTMLInputElement;
+            if (nameInput) { nameInput.focus(); nameInput.select(); }
+          }, 0);
 
           // Auto-generate ticker if enabled
           if (autoGenerateTicker) {
@@ -1364,6 +1481,9 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
           const matchingTweet = tweets.find(tweet => textMatchesTweet(tweet, trimmedText));
 
           if (matchingTweet) {
+
+            // Check whitelist — auto-switch platform if username is whitelisted
+            checkWhitelistAndSwitchPlatform(matchingTweet.username);
 
             // Fill Twitter URL
             const twitterUrl = buildTweetUrl(matchingTweet.username, matchingTweet.twitterStatusId);
@@ -1392,16 +1512,37 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               setUploadedImage(matchingFolderImgs[0]);
             }
           }
+          // If double-click-to-deploy is enabled, flag for deploy after state updates
+          if (doubleClickDeployEnabled) {
+            pendingDeployRef.current = true;
+          }
         }
       }, 10);
     };
-    
+
     document.addEventListener('dblclick', handleDoubleClick);
-    
+
     return () => {
       document.removeEventListener('dblclick', handleDoubleClick);
     };
-  }, [autoFillOnCopy, autoGenerateTicker, tweets, onTokenSearch, browserImages]);
+  }, [autoFillOnCopy, autoGenerateTicker, tweets, onTokenSearch, browserImages, checkWhitelistAndSwitchPlatform]);
+
+  // Fire pending deploy once name+symbol state has updated (double-click-to-deploy + saved token load)
+  useEffect(() => {
+    if (pendingDeployRef.current && name && symbol) {
+      pendingDeployRef.current = false;
+      handleDeploy();
+    }
+  }, [name, symbol, handleDeploy]);
+
+  // Fire pending quick deploy (LETTER/SOL/ASCII buttons) after image mode state update
+  useEffect(() => {
+    if (pendingQuickDeployRef.current) {
+      const { amount, imageMode } = pendingQuickDeployRef.current;
+      pendingQuickDeployRef.current = null;
+      handleDeployWithAmount(amount, imageMode);
+    }
+  }, [selectedImageMode, handleDeployWithAmount]);
 
   // Global deploy keybind handler — reads from configurable keybind (e.g. "Enter", "Ctrl + X")
   useEffect(() => {
@@ -1729,8 +1870,9 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
   }, [showGoogleSearch]);
 
   return (
-    <div 
-      className={`h-full ${theme.panel1ContentBg} glass-panel flex flex-col relative ${isDragging && !editMode ? 'ring-4 ring-blue-500' : ''}`}
+    <div
+      data-panel-deploy
+      className={`h-full ${variant === 'launchblitz' ? 'bg-[#0a0a0b] lb-deploy' : `${theme.panel1ContentBg} glass-panel`} flex flex-col relative ${isDragging && !editMode ? 'ring-4 ring-blue-500' : ''}`}
       onDragEnter={!editMode ? handleDragEnter : undefined}
       onDragOver={!editMode ? handleDragOver : undefined}
       onDragLeave={!editMode ? handleDragLeave : undefined}
@@ -1750,8 +1892,8 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
         ))}
       </div>
       {/* Header Row */}
-      <div className="panel-header flex items-center gap-2">
-        <span className="section-label">Deploy</span>
+      <div className={`${variant === 'launchblitz' ? 'px-3 py-2 border-b border-white/[0.06] bg-transparent' : 'panel-header'} flex items-center gap-2`}>
+        {variant !== 'launchblitz' && <span className="section-label">Deploy</span>}
 
         <button
           onClick={handleClear}
@@ -1759,6 +1901,15 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
         >
           <Trash2 size={10} />
           <span>Clear</span>
+        </button>
+
+        <button
+          onClick={handleSaveToken}
+          className="flex items-center gap-1 text-white/20 hover:text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/10 btn-lift text-[10px]"
+          title="Save token for later"
+        >
+          <svg className="w-[10px] h-[10px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Save</span>
         </button>
 
         <div className="flex-1" />
@@ -1851,11 +2002,44 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
         </div>
       </div>
 
+      {savedTokens.length > 0 && (
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-white/[0.04] overflow-x-auto scrollbar-hide bg-white/[0.01]">
+          <span className="text-[8px] text-white/15 uppercase tracking-wider flex-shrink-0 mr-1">Saved</span>
+          {savedTokens.map((token) => (
+            <div key={token.id} className="flex items-center gap-1 flex-shrink-0 group">
+              <button
+                onClick={() => handleLoadSavedToken(token)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-white/[0.04] hover:bg-blue-500/15 border border-white/[0.06] hover:border-blue-500/30 transition-colors"
+                title={`Deploy ${token.name} ($${token.symbol})`}
+              >
+                {token.image && <img src={token.image.startsWith('data:') ? token.image : `/api/proxy-image?url=${encodeURIComponent(token.image)}`} alt="" className="w-3.5 h-3.5 rounded object-cover" />}
+                <span className="text-[10px] text-white/60 font-semibold">{token.symbol}</span>
+              </button>
+              <button
+                onClick={() => handleRemoveSavedToken(token.id)}
+                className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all p-0.5"
+                title="Remove"
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={handleClearSavedTokens}
+            className="text-white/15 hover:text-red-400 transition-colors flex-shrink-0 ml-auto pl-1"
+            title="Clear all saved tokens"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </div>
+      )}
+
       {/* Content Area */}
-      <div className={`flex-1 px-3 py-2 overflow-auto ${theme.panel1ContentBg}`}>
-        <div className="flex flex-col gap-2">
+      <div className={`flex-1 px-3 py-2 overflow-auto ${variant === 'launchblitz' ? 'bg-transparent' : theme.panel1ContentBg}`}>
+        <div className={`flex flex-col ${variant === 'launchblitz' ? 'gap-3' : 'gap-2'}`}>
           {/* NAME + SYMBOL row */}
           <div>
+            {variant !== 'launchblitz' && (
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
@@ -1890,55 +2074,92 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
                 </button>
               </div>
             </div>
-            <div className="flex gap-1.5">
+            )}
+            <div className={variant === 'launchblitz' ? 'grid grid-cols-[65fr_35fr] gap-3' : 'flex gap-1.5'}>
               <div className="relative flex-1 min-w-0">
                 <input
                   type="text"
                   maxLength={32}
-                  placeholder="Token name"
+                  placeholder={variant === 'launchblitz' ? 'Coin name' : 'Token name'}
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full ${theme.inputBg} ${theme.textPrimary} px-2.5 py-1.5 pr-6 rounded-md border ${theme.inputBorder} text-[12px] focus:outline-none input-premium`}
+                  className={`w-full ${variant === 'launchblitz' ? 'bg-black/60 text-white' : `${theme.inputBg} ${theme.textPrimary}`} px-3 py-1.5 ${variant === 'launchblitz' ? 'pr-16' : 'pr-6'} rounded border ${variant === 'launchblitz' ? 'border-white/[0.10]' : theme.inputBorder} text-sm focus:outline-none ${variant === 'launchblitz' ? 'focus:border-blue-500/50 focus:ring-[3px] focus:ring-blue-500/15 shadow-xs' : 'input-premium'}`}
                 />
-                {name && (
-                  <button type="button" onClick={() => { handleNameChange(""); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-white/20 hover:text-white/50 transition-colors">
-                    <XIcon size={11} />
-                  </button>
+                {variant === 'launchblitz' ? (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <span className="text-[11px] text-white/25 font-medium">{name.length}/32</span>
+                    {name && (
+                      <button type="button" tabIndex={-1} onClick={() => { handleNameChange(""); }} className="p-0.5 text-white/20 hover:text-white/50 transition-colors">
+                        <XIcon size={11} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  name && (
+                    <button type="button" tabIndex={-1} onClick={() => { handleNameChange(""); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-white/20 hover:text-white/50 transition-colors">
+                      <XIcon size={11} />
+                    </button>
+                  )
                 )}
               </div>
-              <div className="relative w-[100px]">
+              <div className={`relative ${variant === 'launchblitz' ? 'min-w-0' : 'w-[100px]'}`}>
                 <input
                   type="text"
                   maxLength={13}
-                  placeholder="TICKER"
+                  placeholder="Ticker"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className={`w-full ${theme.inputBg} ${theme.textPrimary} px-2.5 py-1.5 pr-6 rounded-md border ${theme.inputBorder} text-[12px] font-medium focus:outline-none focus:border-white/15 placeholder-white/15 uppercase input-premium`}
+                  className={`w-full ${variant === 'launchblitz' ? 'bg-black/60 text-white' : `${theme.inputBg} ${theme.textPrimary}`} px-3 py-1.5 ${variant === 'launchblitz' ? 'pr-16' : 'pr-6'} rounded border ${variant === 'launchblitz' ? 'border-white/[0.10]' : theme.inputBorder} text-sm font-medium focus:outline-none ${variant === 'launchblitz' ? 'focus:border-blue-500/50 focus:ring-[3px] focus:ring-blue-500/15 shadow-xs placeholder-white/30' : 'focus:border-white/15 placeholder-white/15'} uppercase`}
                 />
-                {symbol && (
-                  <button type="button" onClick={() => { setSymbol(""); if (!name.trim()) { setImageOptions([]); setUploadedImage(null); } }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-white/20 hover:text-white/50 transition-colors">
-                    <XIcon size={11} />
-                  </button>
+                {variant === 'launchblitz' ? (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <span className="text-[11px] text-white/25 font-medium">{symbol.length}/13</span>
+                    {symbol && (
+                      <button type="button" tabIndex={-1} onClick={() => { setSymbol(""); if (!name.trim()) { setImageOptions([]); setUploadedImage(null); } }} className="p-0.5 text-white/20 hover:text-white/50 transition-colors">
+                        <XIcon size={11} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  symbol && (
+                    <button type="button" tabIndex={-1} onClick={() => { setSymbol(""); if (!name.trim()) { setImageOptions([]); setUploadedImage(null); } }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-white/20 hover:text-white/50 transition-colors">
+                      <XIcon size={11} />
+                    </button>
+                  )
                 )}
               </div>
             </div>
           </div>
 
           {/* WEBSITE + TWITTER */}
-          <div className="flex gap-1.5">
+          <div className={variant === 'launchblitz' ? 'flex flex-col gap-4' : 'flex gap-1.5'}>
+            {/* Twitter first in LB layout */}
+            {variant === 'launchblitz' && (
+              <div className="flex-1 min-w-0">
+                <input
+                  type="text"
+                  placeholder="Twitter"
+                  value={twitter}
+                  onChange={(e) => setTwitter(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full bg-black/60 text-white px-3 py-1.5 rounded border border-white/[0.10] text-sm focus:outline-none focus:border-blue-500/50 focus:ring-[3px] focus:ring-blue-500/15 shadow-xs placeholder-white/30"
+                />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <span className="section-label mb-0.5 block">Website</span>
+              {variant !== 'launchblitz' && <span className="section-label mb-0.5 block">Website</span>}
               <input
                 type="text"
-                placeholder="https://example.com"
+                placeholder={variant === 'launchblitz' ? 'Website' : 'https://example.com'}
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className={`w-full ${theme.inputBg} ${theme.textPrimary} px-2.5 py-1.5 rounded-md border ${theme.inputBorder} text-[12px] focus:outline-none input-premium`}
+                className={`w-full ${variant === 'launchblitz' ? 'bg-black/60 text-white px-3 py-1.5 rounded border border-white/[0.10] text-sm focus:outline-none focus:border-blue-500/50 focus:ring-[3px] focus:ring-blue-500/15 shadow-xs placeholder-white/30' : `${theme.inputBg} ${theme.textPrimary} px-2.5 py-1.5 rounded-md border ${theme.inputBorder} text-[12px] focus:outline-none input-premium`}`}
               />
             </div>
+            {variant !== 'launchblitz' && (
             <div className="flex-1 min-w-0">
               <span className="section-label mb-0.5 block">Twitter</span>
               <input
@@ -1950,11 +2171,12 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
                 className={`w-full ${theme.inputBg} ${theme.textPrimary} px-2.5 py-1.5 rounded-md border ${theme.inputBorder} text-[12px] focus:outline-none input-premium`}
               />
             </div>
+            )}
           </div>
 
           {/* Select Image */}
           <div>
-          <span className="section-label mb-1.5 block">Select Image</span>
+          <span className="section-label mb-1.5 block">{variant === 'launchblitz' ? 'Image Studio' : 'Select Image'}</span>
           <div
             className="flex items-center gap-2 justify-center flex-wrap"
             onDragEnter={!editMode ? handleDragEnter : undefined}
@@ -1965,13 +2187,16 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
             {/* Show all image options from deploy */}
             {imageOptions.length > 0 ? (
               imageOptions.map((imgUrl, idx) => {
+                const isSelected = uploadedImage === imgUrl;
                 return (
                   <button
                     key={idx}
                     onClick={() => setUploadedImage(imgUrl)}
                     className={`relative group w-14 h-14 rounded overflow-hidden flex-shrink-0 transition-all ${
-                      uploadedImage === imgUrl
-                        ? 'ring-2 ring-green-500 border border-green-500'
+                      isSelected
+                        ? variant === 'launchblitz'
+                          ? 'ring-2 ring-blue-500 border border-blue-500'
+                          : 'ring-2 ring-green-500 border border-green-500'
                         : 'border border-white/[0.08] hover:border-white/20'
                     }`}
                   >
@@ -1980,8 +2205,8 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
                       alt={`Option ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
-                    {uploadedImage === imgUrl && (
-                      <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    {isSelected && (
+                      <div className={`absolute top-0.5 right-0.5 w-4 h-4 ${variant === 'launchblitz' ? 'bg-blue-500' : 'bg-green-500'} rounded-full flex items-center justify-center`}>
                         <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -2060,90 +2285,157 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
           </div>
 
           {/* Image action buttons row */}
-          <div className="flex items-center justify-center gap-1">
-            <button
-              onClick={() => { if (uploadedImage) setShowCropModal(true); }}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
-                uploadedImage ? 'text-white/40 hover:text-white hover:bg-white/[0.08]' : 'text-white/25 cursor-default'
-              }`}
-            >
-              <Crop size={11} />
-              <span>Edit</span>
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  // Try reading image blobs first
-                  const items = await navigator.clipboard.read();
-                  for (const item of items) {
-                    const imageType = item.types.find(t => t.startsWith('image/'));
-                    if (imageType) {
-                      const blob = await item.getType(imageType);
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        if (typeof reader.result === 'string') setUploadedImage(reader.result);
-                      };
-                      reader.readAsDataURL(blob);
-                      return;
+          {variant === 'launchblitz' ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => { if (uploadedImage) setShowCropModal(true); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[12px] font-medium transition-colors ${
+                    uploadedImage ? 'border-white/[0.12] bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white' : 'border-white/[0.08] bg-white/[0.02] text-white/30 cursor-default'
+                  }`}
+                >
+                  <Crop size={13} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={() => { setSelectedImageMode("ascii"); setUploadedImage(null); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/[0.12] bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white text-[12px] font-medium transition-colors"
+                >
+                  <span className="font-mono">&gt;_</span>
+                  <span>ASCII</span>
+                </button>
+                <button
+                  onClick={() => { setSelectedImageMode("letter"); setUploadedImage(null); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-white/[0.12] bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white text-[12px] font-medium transition-colors"
+                >
+                  <span className="font-serif font-bold">T</span>
+                  <span>Letter</span>
+                </button>
+              </div>
+              <button
+                onClick={() => setShowGoogleSearch(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[12px] font-medium transition-colors ${
+                  showGoogleSearch ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-white/[0.12] bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5"/><path d="M3 9h18M9 3v18" strokeWidth="1.5"/></svg>
+                <span>Dev Panel</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => { if (uploadedImage) setShowCropModal(true); }}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
+                  uploadedImage ? 'text-white/40 hover:text-white hover:bg-white/[0.08]' : 'text-white/25 cursor-default'
+                }`}
+              >
+                <Crop size={11} />
+                <span>Edit</span>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const items = await navigator.clipboard.read();
+                    for (const item of items) {
+                      const imageType = item.types.find(t => t.startsWith('image/'));
+                      if (imageType) {
+                        const blob = await item.getType(imageType);
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          if (typeof reader.result === 'string') setUploadedImage(reader.result);
+                        };
+                        reader.readAsDataURL(blob);
+                        return;
+                      }
                     }
-                  }
-                  // Fallback: try text URL
-                  const text = await navigator.clipboard.readText();
-                  const trimmed = text.trim();
-                  if (trimmed.startsWith('http') || trimmed.startsWith('data:image')) {
-                    setUploadedImage(trimmed);
-                  }
-                } catch {}
-              }}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <ClipboardPaste size={11} />
-              <span>Paste</span>
-            </button>
-            <button
-              onClick={() => document.getElementById('panel1-file-input')?.click()}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <ImageLucide size={11} />
-              <span>Images</span>
-            </button>
-            <button
-              onClick={() => {
-                setSelectedImageMode("ascii");
-                setUploadedImage(null);
-              }}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <span className="font-mono">&gt;_</span>
-              <span>ASCII</span>
-            </button>
-          </div>
+                    const text = await navigator.clipboard.readText();
+                    const trimmed = text.trim();
+                    if (trimmed.startsWith('http') || trimmed.startsWith('data:image')) {
+                      setUploadedImage(trimmed);
+                    }
+                  } catch {}
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <ClipboardPaste size={11} />
+                <span>Paste</span>
+              </button>
+              <button
+                onClick={() => document.getElementById('panel1-file-input')?.click()}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <ImageLucide size={11} />
+                <span>Images</span>
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedImageMode("ascii");
+                  setUploadedImage(null);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <span className="font-mono">&gt;_</span>
+                <span>ASCII</span>
+              </button>
+            </div>
+          )}
           </div>
 
           {/* Platform */}
           <div>
-            <span className="section-label mb-1 block text-center">Platform</span>
-            <div className="flex items-center justify-center gap-1">
-              {logos.map((logo, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedPlatformIndex(i)}
-                  className={`w-8 h-8 rounded flex items-center justify-center border transition-colors overflow-hidden ${
-                    selectedPlatformIndex === i
-                      ? 'border-blue-500 bg-blue-500/15'
-                      : 'border-white/[0.06] bg-white/[0.04] hover:border-white/15'
-                  }`}
-                >
-                  <Image
-                    src={logo.src}
-                    alt={logo.alt}
-                    width={22}
-                    height={22}
-                    className="object-contain"
-                  />
-                </button>
-              ))}
-            </div>
+            {variant !== 'launchblitz' && <span className="section-label mb-1 block text-center">Platform</span>}
+            {variant === 'launchblitz' ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {logos.map((logo, i) => {
+                  const isActive = selectedPlatformIndex === i;
+                  const platformColors: Record<number, string> = {
+                    0: isActive ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : '',
+                    1: isActive ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : '',
+                    2: isActive ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : '',
+                    3: isActive ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : '',
+                    4: isActive ? 'bg-purple-500/20 border-purple-500/40 text-purple-400' : '',
+                    5: isActive ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : '',
+                  };
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleManualPlatformChange(i)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[12px] font-medium transition-colors ${
+                        isActive
+                          ? platformColors[i]
+                          : 'border-white/[0.10] bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white/70'
+                      }`}
+                    >
+                      <Image src={logo.src} alt={logo.alt} width={16} height={16} className="object-contain" />
+                      <span>{logo.alt}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1">
+                {logos.map((logo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleManualPlatformChange(i)}
+                    className={`w-8 h-8 rounded flex items-center justify-center border transition-colors overflow-hidden ${
+                      selectedPlatformIndex === i
+                        ? 'border-blue-500 bg-blue-500/15'
+                        : 'border-white/[0.06] bg-white/[0.04] hover:border-white/15'
+                    }`}
+                  >
+                    <Image
+                      src={logo.src}
+                      alt={logo.alt}
+                      width={22}
+                      height={22}
+                      className="object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
             {/* USD1/SOL currency toggle — only for USD1 platform */}
             {selectedPlatform === 'usd1' && (
               <div className="flex justify-center mt-1">
@@ -2175,6 +2467,107 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
 
           {/* === Advanced Deploy Options — Button Toggles === */}
           <div className="relative">
+            {variant === 'launchblitz' ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {/* Turbo */}
+                <button
+                  onClick={() => setTurboModeEnabled(prev => !prev)}
+                  className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors ${
+                    turboModeEnabled
+                      ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                      : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${turboModeEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                    {turboModeEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                  <span className="truncate">Turbo</span>
+                </button>
+
+                {/* Cashback — Pump only */}
+                {selectedPlatform === 'pump' && (
+                  <button
+                    onClick={() => setCashbackEnabled(prev => !prev)}
+                    className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors ${
+                      cashbackEnabled
+                        ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                        : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${cashbackEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                      {cashbackEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span className="truncate">Cashback</span>
+                  </button>
+                )}
+
+                {/* Bonkers — Bonk/USD1 only */}
+                {(selectedPlatform === 'bonk' || selectedPlatform === 'usd1') && (
+                  <button
+                    onClick={() => setBonkersEnabled(prev => !prev)}
+                    className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors ${
+                      bonkersEnabled
+                        ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                        : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${bonkersEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                      {bonkersEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span className="truncate">Bonkers</span>
+                  </button>
+                )}
+
+                {/* Auto-Sell */}
+                <button
+                  onClick={() => setAutoSellEnabled(prev => !prev)}
+                  className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors ${
+                    autoSellEnabled
+                      ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                      : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${autoSellEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                    {autoSellEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                  <span className="truncate">Auto-Sell</span>
+                </button>
+
+                {/* Bundle */}
+                <div ref={bundleButtonRef}>
+                  <button
+                    onClick={() => { setBundleEnabled(prev => !prev); }}
+                    className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors w-full ${
+                      bundleEnabled
+                        ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                        : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${bundleEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                      {bundleEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span className="truncate">Bundle</span>
+                  </button>
+                </div>
+
+                {/* Multi Deploy */}
+                <div ref={multiButtonRef}>
+                  <button
+                    onClick={() => { setMultiDeployEnabled(prev => !prev); setShowMultiPopup(prev => !prev); }}
+                    className={`flex items-center gap-2 h-9 px-3 rounded border text-[11px] font-medium transition-colors w-full ${
+                      multiDeployEnabled
+                        ? 'border-white/[0.15] bg-white/[0.06] text-white'
+                        : 'border-white/[0.10] bg-transparent text-white/50 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${multiDeployEnabled ? 'border-white/50 bg-white/15' : 'border-white/20'}`}>
+                      {multiDeployEnabled && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span className="truncate">Multi Deploy</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="flex flex-wrap gap-1 px-0.5">
               {/* Bonkers — Bonk and USD1 only, at the start */}
               {(selectedPlatform === 'bonk' || selectedPlatform === 'usd1') && (
@@ -2300,6 +2693,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
                 </button>
               </div>
             </div>
+            )}
 
             {/* Auto-Sell options row — shown when auto-sell enabled */}
             {autoSellEnabled && (
@@ -2460,6 +2854,51 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
           </div>
 
           {/* Preset Amount Buttons */}
+          {variant === 'launchblitz' ? (
+            <>
+              {/* LB-style buy amount buttons: 1 ≡, 3 ≡, 5 ≡, # */}
+              <div className="flex items-center gap-2">
+                {[1, 3, 5].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => handleDeployWithAmount(amt)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded border border-white/[0.10] bg-white/[0.03] text-white/80 hover:bg-white/[0.06] hover:text-white text-[14px] font-semibold transition-colors"
+                  >
+                    <span>{amt}</span>
+                    <svg className="w-3.5 h-3.5 text-white/30" fill="currentColor" viewBox="0 0 16 16">
+                      <rect x="2" y="2" width="12" height="2" rx="0.5" />
+                      <rect x="2" y="7" width="12" height="2" rx="0.5" />
+                      <rect x="2" y="12" width="12" height="2" rx="0.5" />
+                    </svg>
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setTempPresets(activePresets.map(String));
+                    setIsEditingPresets(true);
+                  }}
+                  className="flex items-center justify-center px-4 py-2.5 rounded border border-white/[0.10] bg-white/[0.03] text-white/40 hover:bg-white/[0.06] hover:text-white/70 text-[14px] font-semibold transition-colors"
+                  title="Custom buy amount"
+                >
+                  <span>#</span>
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="flex items-center justify-center w-10 py-2.5 rounded border border-white/[0.10] bg-white/[0.03] text-white/30 hover:bg-white/[0.06] hover:text-white/50 transition-colors"
+                  title="More options"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </div>
+
+              {/* Presets placeholder */}
+              <div className="text-[13px] text-white/40 py-1">
+                {savedTokens.length > 0 ? null : (
+                  <span>No presets yet. <button onClick={() => handleSaveToken()} className="text-white/60 underline underline-offset-2 hover:text-white transition-colors">Create one</button> to launch faster.</span>
+                )}
+              </div>
+            </>
+          ) : (
           <div className="flex gap-1">
             {isEditingPresets ? (
               <>
@@ -2525,9 +2964,10 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               </>
             )}
           </div>
+          )}
 
           {/* Bundle Quick-Buy Preset Buttons — hidden when bundle toggle is ON */}
-          {!bundleEnabled && (() => {
+          {variant !== 'launchblitz' && !bundleEnabled && (() => {
             const hasBlock0Wallets = Object.values(block0SnipeWallets).some(c => c.enabled);
             return (
             <div className="flex gap-1">
@@ -2613,7 +3053,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
           })()}
 
           {/* Deploy Row — full width button with amount inline */}
-          <div className="flex gap-1.5 relative">
+          {variant !== 'launchblitz' && <div className="flex gap-1.5 relative">
             <button
               onClick={handleDeploy}
               disabled={isDeploying}
@@ -2660,15 +3100,15 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               />
               <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-white/40 font-semibold pointer-events-none">{activeCurrencyLabel}</span>
             </div>
-          </div>
+          </div>}
 
           {/* LETTER / SOL / ASCII / Google quick-deploy row */}
-          <div className="flex gap-1 relative">
+          {variant !== 'launchblitz' && <div className="flex gap-1 relative">
             <button
               onClick={() => {
                 setSelectedImageMode("letter");
                 setUploadedImage(null);
-                setTimeout(() => handleDeployWithAmount(activeAmount), 50);
+                pendingQuickDeployRef.current = { amount: activeAmount, imageMode: "letter" };
               }}
               disabled={isDeploying}
               className={`flex-1 px-2 py-1.5 btn-lift ${isDeploying ? 'bg-white/[0.08]' : 'bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.1] hover:border-white/[0.15]'} text-white/50 hover:text-white text-[10px] font-semibold rounded border`}
@@ -2679,7 +3119,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               onClick={() => {
                 setSelectedImageMode("sol");
                 setUploadedImage(null);
-                setTimeout(() => handleDeployWithAmount(activeAmount), 50);
+                pendingQuickDeployRef.current = { amount: activeAmount, imageMode: "sol" };
               }}
               disabled={isDeploying}
               className={`flex-1 px-2 py-1.5 btn-lift ${isDeploying ? 'bg-white/[0.08]' : 'bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.1] hover:border-white/[0.15]'} text-[10px] font-bold rounded border`}
@@ -2690,7 +3130,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               onClick={() => {
                 setSelectedImageMode("ascii");
                 setUploadedImage(null);
-                setTimeout(() => handleDeployWithAmount(activeAmount), 50);
+                pendingQuickDeployRef.current = { amount: activeAmount, imageMode: "ascii" };
               }}
               disabled={isDeploying}
               className={`flex-1 px-2 py-1.5 btn-lift ${isDeploying ? 'bg-white/[0.08]' : 'bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.1] hover:border-white/[0.15]'} text-white/50 hover:text-white text-[10px] rounded border`}
@@ -2704,7 +3144,7 @@ export default function Panel1({ themeId, activeWallet, wallets = [], onWalletSe
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" strokeWidth="2"/><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/></svg>
               Google
             </button>
-          </div>
+          </div>}
 
           {/* Google Image Search Popdown */}
           {showGoogleSearch && (
@@ -3022,20 +3462,20 @@ function CropModal({ imageSrc, onClose, onCrop }: CropModalProps) {
   const zoomPercent = Math.round((scale / fitScale) * 100);
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80" onClick={onClose}>
-      <div className="bg-gray-900 rounded-lg w-[420px] border border-gray-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0f1118] rounded-xl w-[400px] border border-white/[0.06] flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <span className="text-sm font-medium text-white">Crop Image</span>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <XIcon size={16} />
+        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+          <span className="text-[13px] font-medium text-white/90 tracking-tight">Crop Image</span>
+          <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
+            <XIcon size={14} />
           </button>
         </div>
 
         {/* Crop area */}
-        <div className="p-4 flex flex-col items-center gap-3">
+        <div className="px-5 py-4 flex flex-col items-center gap-3">
           <div
-            className="relative overflow-hidden bg-gray-800 rounded-md border border-gray-600 cursor-grab active:cursor-grabbing"
+            className="relative overflow-hidden bg-black/40 rounded-lg cursor-grab active:cursor-grabbing ring-1 ring-white/[0.08]"
             style={{ width: CROP_SIZE, height: CROP_SIZE }}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
@@ -3061,20 +3501,19 @@ function CropModal({ imageSrc, onClose, onCrop }: CropModalProps) {
             )}
             {/* Crop grid overlay */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/20" />
-              <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/20" />
-              <div className="absolute top-1/3 left-0 right-0 h-px bg-white/20" />
-              <div className="absolute top-2/3 left-0 right-0 h-px bg-white/20" />
-              <div className="absolute inset-0 border-2 border-white/10 rounded-md" />
+              <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/[0.08]" />
+              <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/[0.08]" />
+              <div className="absolute top-1/3 left-0 right-0 h-px bg-white/[0.08]" />
+              <div className="absolute top-2/3 left-0 right-0 h-px bg-white/[0.08]" />
             </div>
             {!imageLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">Loading...</div>
+              <div className="absolute inset-0 flex items-center justify-center text-white/25 text-xs">Loading...</div>
             )}
           </div>
 
           {/* Zoom slider */}
-          <div className="w-full flex items-center gap-3">
-            <span className="text-[10px] text-gray-500 w-8 text-right flex-shrink-0">{zoomPercent}%</span>
+          <div className="w-full flex items-center gap-2.5">
+            <span className="text-[10px] text-white/30 w-8 text-right flex-shrink-0 tabular-nums">{zoomPercent}%</span>
             <input
               type="range"
               min={0.02}
@@ -3082,30 +3521,30 @@ function CropModal({ imageSrc, onClose, onCrop }: CropModalProps) {
               step={0.01}
               value={scale}
               onChange={(e) => setScale(parseFloat(e.target.value))}
-              className="flex-1 h-1 bg-gray-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+              className="flex-1 h-[3px] bg-white/[0.08] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:bg-white/80 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm"
             />
             <button
               onClick={() => { setScale(fitScale); setOffset({ x: 0, y: 0 }); }}
-              className="text-[10px] text-gray-500 hover:text-white transition-colors flex-shrink-0"
+              className="text-[10px] text-white/30 hover:text-white/70 transition-colors flex-shrink-0"
             >
               Reset
             </button>
           </div>
 
-          <div className="text-[10px] text-gray-600 text-center">Scroll to zoom &middot; Drag to pan &middot; Output: {OUTPUT_SIZE}x{OUTPUT_SIZE}px</div>
+          <div className="text-[10px] text-white/20 text-center">Scroll to zoom &middot; Drag to pan &middot; {OUTPUT_SIZE}&times;{OUTPUT_SIZE}px</div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-gray-700">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-white/[0.06]">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+            className="px-4 py-1.5 text-[12px] text-white/40 hover:text-white/70 transition-colors rounded-md"
           >
             Cancel
           </button>
           <button
             onClick={handleCrop}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-md transition-colors"
+            className="px-4 py-1.5 bg-white/[0.08] hover:bg-white/[0.14] text-white/90 text-[12px] font-medium rounded-md transition-colors ring-1 ring-white/[0.06]"
           >
             Crop &amp; Save
           </button>

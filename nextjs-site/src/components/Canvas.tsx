@@ -70,8 +70,6 @@ export default function Canvas({ themeId, onImageSelected }: CanvasProps) {
   }, [generatedImages, onImageSelected]);
 
   const handleClear = useCallback(() => {
-    setGeneratedImages([]);
-    setSelectedIdx(null);
     setPrompt("");
     setError(null);
   }, []);

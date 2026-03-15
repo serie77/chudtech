@@ -88,6 +88,46 @@ export default function SettingsModal({
     if (typeof window !== 'undefined') { const v = storeGet('nnn-pause-on-hover'); return v !== null ? v === 'true' : true; }
     return true;
   });
+  const [siteFont, setSiteFont] = useState(() => {
+    if (typeof window !== 'undefined') return storeGet('nnn-site-font') || 'inter';
+    return 'inter';
+  });
+
+  // Apply font to <html> data attribute
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    storeSet('nnn-site-font', siteFont);
+    if (siteFont === 'inter') {
+      document.documentElement.removeAttribute('data-font');
+    } else {
+      document.documentElement.setAttribute('data-font', siteFont);
+    }
+  }, [siteFont]);
+
+  // Restore font on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = storeGet('nnn-site-font');
+    if (saved && saved !== 'inter') {
+      document.documentElement.setAttribute('data-font', saved);
+    }
+  }, []);
+
+  // UI Preference (layout style)
+  const [uiPreference, setUiPreference] = useState(() => {
+    if (typeof window !== 'undefined') return storeGet('nnn-ui-preference') || 'nnn';
+    return 'nnn';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    storeSet('nnn-ui-preference', uiPreference);
+  }, [uiPreference]);
+
+  const fontOptions = [
+    { id: 'inter', label: 'Inter' },
+    { id: 'geist', label: 'Geist' },
+    { id: 'space-grotesk', label: 'Space Grotesk' },
+  ];
   // Theme preview data for inline grid
   const themePreviewData: Record<string, { gradient: string; dot: string; border: string }> = {
     "legacy-default": { gradient: "from-[#1a2236] to-blue-900/60", dot: "bg-blue-500", border: "border-blue-500" },
@@ -138,6 +178,23 @@ export default function SettingsModal({
     return 'Grid Layout';
   });
 
+  // Card sidebar color
+  const [cardSidebarColor, setCardSidebarColor] = useState(() => {
+    if (typeof window !== 'undefined') return storeGet('nnn-card-sidebar-color') || '';
+    return '';
+  });
+  const sidebarPresets = [
+    { label: 'None', value: '' },
+    { label: 'Purple', value: '#8B5CF6' },
+    { label: 'Blue', value: '#3B82F6' },
+    { label: 'Cyan', value: '#06B6D4' },
+    { label: 'Green', value: '#10B981' },
+    { label: 'Red', value: '#EF4444' },
+    { label: 'Orange', value: '#F97316' },
+    { label: 'Pink', value: '#EC4899' },
+    { label: 'Yellow', value: '#EAB308' },
+  ];
+
   // Highlights tab states - use props if provided
   const highlightingEnabled = propsHighlightingEnabled;
   const setHighlightingEnabled = (enabled: boolean) => onHighlightingEnabledChange?.(enabled);
@@ -159,6 +216,10 @@ export default function SettingsModal({
   useEffect(() => { storeSet('nnn-default-sound', defaultSound); }, [defaultSound]);
   useEffect(() => { storeSet('nnn-notification-mode', notificationMode); }, [notificationMode]);
   useEffect(() => { storeSet('nnn-image-layout', imageLayout); }, [imageLayout]);
+  useEffect(() => {
+    storeSet('nnn-card-sidebar-color', cardSidebarColor);
+    window.dispatchEvent(new Event('nnn-card-sidebar-change'));
+  }, [cardSidebarColor]);
   useEffect(() => { storeSet('nnn-pause-on-hover', String(pauseOnHover)); }, [pauseOnHover]);
   useEffect(() => { storeSet('nnn-card-width', String(cardWidth)); }, [cardWidth]);
   useEffect(() => { storeSet('nnn-card-scale', String(cardScale)); }, [cardScale]);
@@ -283,6 +344,20 @@ export default function SettingsModal({
   const deleteCustomNotification = (id: string) => {
     if (onCustomNotificationsChange) {
       onCustomNotificationsChange(customNotifications.filter(n => n.id !== id));
+    }
+  };
+
+  // Update custom notification sound
+  const updateNotificationSound = (id: string, sound: string) => {
+    if (onCustomNotificationsChange) {
+      onCustomNotificationsChange(customNotifications.map(n => n.id === id ? { ...n, sound } : n));
+    }
+  };
+
+  // Update custom notification color
+  const updateNotificationColor = (id: string, color: string) => {
+    if (onCustomNotificationsChange) {
+      onCustomNotificationsChange(customNotifications.map(n => n.id === id ? { ...n, color } : n));
     }
   };
 
@@ -435,6 +510,81 @@ export default function SettingsModal({
           {/* Appearance Tab */}
           <TabsContent value="appearance" className="flex-1 overflow-y-auto p-5">
             <div className="space-y-5">
+              {/* UI Preference */}
+              <div>
+                <h3 className="section-label mb-2">UI Preference</h3>
+                <p className="text-[10px] text-white/25 mb-3">Choose your tracker layout style</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* NNN Tracker */}
+                  <button
+                    onClick={() => setUiPreference('nnn')}
+                    className={`group relative flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${
+                      uiPreference === 'nnn'
+                        ? 'bg-white/[0.08] border-white/20 ring-1 ring-white/20'
+                        : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {/* Mini preview: 3-panel layout */}
+                    <div className="w-full h-16 rounded-md bg-black/40 border border-white/10 flex gap-0.5 p-1 overflow-hidden">
+                      <div className="flex-[2] bg-white/[0.06] rounded-sm" />
+                      <div className="flex-[5] bg-white/[0.04] rounded-sm flex flex-col gap-0.5 p-0.5">
+                        <div className="h-1.5 w-full bg-white/[0.08] rounded-full" />
+                        <div className="h-1.5 w-3/4 bg-white/[0.06] rounded-full" />
+                        <div className="h-1.5 w-1/2 bg-white/[0.06] rounded-full" />
+                      </div>
+                      <div className="flex-[3] bg-white/[0.06] rounded-sm" />
+                    </div>
+                    <span className={`text-xs font-medium ${uiPreference === 'nnn' ? 'text-white' : 'text-white/50'}`}>
+                      NNN Tracker
+                    </span>
+                    {uiPreference === 'nnn' && (
+                      <div className="absolute top-2 right-2 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                  {/* Launchblitz */}
+                  <button
+                    onClick={() => setUiPreference('launchblitz')}
+                    className={`group relative flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${
+                      uiPreference === 'launchblitz'
+                        ? 'bg-white/[0.08] border-white/20 ring-1 ring-white/20'
+                        : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {/* Mini preview: top nav + 2-panel layout */}
+                    <div className="w-full h-16 rounded-md bg-black/40 border border-white/10 flex flex-col overflow-hidden">
+                      <div className="h-2.5 w-full bg-white/[0.08] flex items-center px-1 gap-1 shrink-0">
+                        <img src="/images/launchblitz-logo.webp" alt="" className="h-1.5 w-1.5 rounded-full" />
+                        <div className="h-0.5 w-3 bg-white/20 rounded-full" />
+                        <div className="h-0.5 w-3 bg-white/10 rounded-full" />
+                        <div className="h-0.5 w-3 bg-white/10 rounded-full" />
+                      </div>
+                      <div className="flex-1 flex gap-0.5 p-0.5">
+                        <div className="flex-[7] bg-white/[0.04] rounded-sm flex flex-col gap-0.5 p-0.5">
+                          <div className="h-1 w-full bg-white/[0.08] rounded-full" />
+                          <div className="h-1 w-3/4 bg-white/[0.06] rounded-full" />
+                          <div className="h-1 w-1/2 bg-white/[0.06] rounded-full" />
+                        </div>
+                        <div className="flex-[3] bg-white/[0.06] rounded-sm" />
+                      </div>
+                    </div>
+                    <span className={`text-xs font-medium ${uiPreference === 'launchblitz' ? 'text-white' : 'text-white/50'}`}>
+                      Launchblitz
+                    </span>
+                    {uiPreference === 'launchblitz' && (
+                      <div className="absolute top-2 right-2 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
               {/* Color Theme — inline grid */}
               <div>
                 <h3 className="section-label mb-3">Color Theme</h3>
@@ -469,6 +619,26 @@ export default function SettingsModal({
                 </div>
               </div>
 
+              {/* Site Font */}
+              <div>
+                <h3 className="section-label mb-2">Site Font</h3>
+                <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden border border-white/[0.08]">
+                  {fontOptions.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setSiteFont(f.id)}
+                      className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                        siteFont === f.id
+                          ? 'bg-white/[0.12] text-white'
+                          : 'bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white/70'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Image Layout */}
               <div>
                 <h3 className="section-label mb-2">Image Layout</h3>
@@ -482,6 +652,57 @@ export default function SettingsModal({
                     <SelectItem value="Compact Layout">Compact Layout</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Card Sidebar Color */}
+              <div>
+                <h3 className="section-label mb-2">Card Sidebar Color</h3>
+                <div className="relative inline-flex items-center gap-2">
+                  <Select
+                    value={cardSidebarColor || 'none'}
+                    onValueChange={(v) => setCardSidebarColor(v === 'none' ? '' : v === 'custom' ? (cardSidebarColor || '#8B5CF6') : v)}
+                  >
+                    <SelectTrigger className="w-[180px] px-3 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-4 h-4 rounded-[3px] flex-shrink-0 border border-white/10"
+                          style={{ backgroundColor: cardSidebarColor || 'transparent' }}
+                        />
+                        <SelectValue>
+                          {sidebarPresets.find(p => p.value === cardSidebarColor)?.label || (cardSidebarColor ? 'Custom' : 'None')}
+                        </SelectValue>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sidebarPresets.map((p) => (
+                        <SelectItem key={p.label} value={p.value || 'none'}>
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="w-3.5 h-3.5 rounded-[3px] flex-shrink-0 border border-white/10"
+                              style={{ backgroundColor: p.value || 'transparent' }}
+                            />
+                            {p.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-3.5 h-3.5 rounded-[3px] flex-shrink-0" style={{ background: 'linear-gradient(135deg, #f00, #0f0, #00f)' }} />
+                          Custom
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {/* Show color picker when Custom is active */}
+                  {cardSidebarColor && !sidebarPresets.find(p => p.value === cardSidebarColor) && (
+                    <input
+                      type="color"
+                      value={cardSidebarColor}
+                      onChange={(e) => setCardSidebarColor(e.target.value)}
+                      className="w-9 h-9 rounded-md border border-white/10 bg-transparent cursor-pointer"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Card Width */}
@@ -673,18 +894,6 @@ export default function SettingsModal({
                   </Button>
                 </div>
 
-                {/* Search Box */}
-                <div className="relative mb-4">
-                  <Input
-                    type="text"
-                    placeholder="Search..."
-                    className="pl-10 py-2 text-sm"
-                  />
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                  </svg>
-                </div>
-
                 {/* Custom Notifications List */}
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {customNotifications.length === 0 ? (
@@ -698,12 +907,34 @@ export default function SettingsModal({
                         className="flex items-center justify-between p-3 bg-white/[0.03] rounded-lg border border-white/[0.08]"
                       >
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-6 h-6 rounded border-2 border-white/30 flex-shrink-0"
-                            style={{ backgroundColor: notification.color }}
-                          ></div>
+                          <label className="flex-shrink-0 cursor-pointer">
+                            <input
+                              type="color"
+                              value={notification.color}
+                              onChange={(e) => updateNotificationColor(notification.id, e.target.value)}
+                              className="sr-only"
+                            />
+                            <div
+                              className="w-6 h-6 rounded border-2 border-white/30 hover:border-white/50 transition-colors"
+                              style={{ backgroundColor: notification.color }}
+                              title="Click to change color"
+                            />
+                          </label>
                           <span className="text-white font-medium">{notification.username}</span>
-                          <span className="text-gray-400 text-sm">&#8226; {notification.sound}</span>
+                          <span className="text-gray-400 text-sm">&#8226;</span>
+                          <Select
+                            value={notification.sound}
+                            onValueChange={(val) => updateNotificationSound(notification.id, val)}
+                          >
+                            <SelectTrigger className="h-7 px-2 py-1 text-sm bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded text-gray-400 hover:text-white min-w-[70px] cursor-pointer">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {soundOptions.map((s) => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <button
                           onClick={() => deleteCustomNotification(notification.id)}
@@ -1412,19 +1643,171 @@ export default function SettingsModal({
 function AdvancedTab() {
   const [aiEnabled, setAiEnabled] = useState(true);
   const [axiomStatus, setAxiomStatus] = useState<boolean | null>(null);
+  const [downloadOnClick, setDownloadOnClick] = useState(false);
+  const [copyUrlOnClick, setCopyUrlOnClick] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importType, setImportType] = useState<'nnn' | 'j7'>('nnn');
 
   useEffect(() => {
     const storedAi = storeGet("ai-enabled");
     if (storedAi !== null) setAiEnabled(storedAi !== 'false');
-    // Check Axiom cookie status
+    const storedDownload = storeGet("nnn-download-on-click");
+    if (storedDownload !== null) setDownloadOnClick(storedDownload === 'true');
+    const storedCopyUrl = storeGet("nnn-copy-url-on-click");
+    if (storedCopyUrl !== null) setCopyUrlOnClick(storedCopyUrl === 'true');
     fetch('/api/axiom-cookie').then(r => r.json()).then(d => setAxiomStatus(d.configured)).catch(() => {});
   }, []);
+
+  // Deploy-related keys are exported separately in Deploy Settings modal
+  const DEPLOY_KEYS = new Set([
+    'insta-deploy-primary', 'insta-deploy-secondary', 'insta-deploy-double-click',
+    'ai-fill-modifier', 'deployPresetAmounts', 'deployPresetAmountsUSD1',
+    'deployBundlePresetAmounts', 'deployBundlePresetAmountsUSD1',
+    'nnn-buy-amount', 'nnn-usd1-buy-amount', 'nnn-auto-deploy-paste',
+    'nnn-ai-default-platform', 'nnn-whitelists', 'nnn-deploy-btn-position',
+    'nnn-deploy-btn-scale', 'nnn-ai-click-mode', 'customPresets',
+  ]);
+
+  const exportSettings = () => {
+    const prefix = (() => {
+      if (typeof window === "undefined") return "";
+      const apiKey = localStorage.getItem("chud-api-key");
+      if (!apiKey) return "";
+      let hash = 0;
+      for (let i = 0; i < apiKey.length; i++) hash = ((hash << 5) - hash + apiKey.charCodeAt(i)) | 0;
+      return Math.abs(hash).toString(36) + "_";
+    })();
+
+    const settings: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(prefix)) continue;
+      const shortKey = k.slice(prefix.length);
+      if (shortKey === '__migrated') continue;
+      if (shortKey.includes('private') || shortKey.includes('secret')) continue;
+      // Skip deploy-related keys — those are exported from Deploy Settings
+      if (DEPLOY_KEYS.has(shortKey)) continue;
+      settings[shortKey] = localStorage.getItem(k) || "";
+    }
+
+    navigator.clipboard.writeText(JSON.stringify(settings, null, 2))
+      .then(() => { setExportStatus('Copied to clipboard!'); setTimeout(() => setExportStatus(null), 3000); })
+      .catch(() => { setExportStatus('Failed to copy'); setTimeout(() => setExportStatus(null), 3000); });
+  };
+
+  const importSettings = () => {
+    if (!importText.trim()) return;
+    try {
+      const parsed = JSON.parse(importText);
+      if (importType === 'j7') {
+        importJ7Settings(parsed);
+      } else {
+        // NNN native format — write each key (skip deploy keys, those go in Deploy Settings)
+        for (const [key, value] of Object.entries(parsed)) {
+          if (key === '__migrated' || key.includes('private') || key.includes('secret')) continue;
+          if (DEPLOY_KEYS.has(key)) continue;
+          storeSet(key, value as string);
+        }
+      }
+      setImportStatus('Settings imported! Reload to apply.');
+      setImportText('');
+      setTimeout(() => { setImportStatus(null); setShowImportModal(false); }, 3000);
+    } catch {
+      setImportStatus('Invalid JSON');
+      setTimeout(() => setImportStatus(null), 3000);
+    }
+  };
+
+  const importJ7Settings = (j7: any) => {
+    // Map J7 tracker settings → NNN settings
+
+    // Sounds
+    if (j7.notificationsEnabled !== undefined) storeSet('nnn-sounds-enabled', String(j7.notificationsEnabled));
+    if (j7.notificationVolume !== undefined) storeSet('nnn-volume', String(Math.round(j7.notificationVolume * 100)));
+    if (j7.notificationMode) storeSet('nnn-notification-mode', j7.notificationMode);
+    if (j7.defaultSound) storeSet('nnn-default-sound', j7.defaultSound.charAt(0).toUpperCase() + j7.defaultSound.slice(1));
+
+    // Custom notification accounts
+    if (j7.notificationAccounts) {
+      const notifications = Object.entries(j7.notificationAccounts).map(([username, config]: [string, any]) => ({
+        id: `j7-${username}-${Date.now()}`,
+        username: `@${username}`,
+        color: config.color === 'cyan' ? '#00FFFF' : config.color === 'red' ? '#FF0000' : config.color === 'green' ? '#00FF00' : config.color || '#00FFFF',
+        sound: config.sound ? config.sound.charAt(0).toUpperCase() + config.sound.slice(1) : 'Beep',
+      }));
+      storeSet('nnn-custom-notifications', JSON.stringify(notifications));
+    }
+
+    // Appearance
+    if (j7.pauseOnHover !== undefined) storeSet('nnn-pause-on-hover', String(j7.pauseOnHover));
+    if (j7.cardWidth) storeSet('nnn-card-width', String(j7.cardWidth));
+    if (j7.cardScale) storeSet('nnn-card-scale', String(Math.round(j7.cardScale * 100)));
+    if (j7.imageLayout) storeSet('nnn-image-layout', j7.imageLayout === 'vertical' ? 'Vertical Stack' : 'Grid Layout');
+
+    // Dev settings
+    if (j7.devSettings?.downloadImageOnClick !== undefined) {
+      storeSet('nnn-download-on-click', String(j7.devSettings.downloadImageOnClick));
+      setDownloadOnClick(j7.devSettings.downloadImageOnClick);
+    }
+    if (j7.devSettings?.copyUrlOnClick !== undefined) {
+      storeSet('nnn-copy-url-on-click', String(j7.devSettings.copyUrlOnClick));
+      setCopyUrlOnClick(j7.devSettings.copyUrlOnClick);
+    }
+
+    // Keyword highlights
+    if (j7.memeWords && Array.isArray(j7.memeWords)) {
+      const keywords = j7.memeWords.map((w: any) => ({
+        id: `j7-${w.word}-${Date.now()}`,
+        text: w.word,
+        matchMode: w.matchMode || 'contains',
+        sound: w.sound || null,
+        color: w.color || null,
+      }));
+      storeSet('nnn-keywords', JSON.stringify(keywords));
+    }
+
+    // Note: Deploy-related J7 fields (presets, keybinds, buy amounts, whitelists)
+    // are imported separately via the Deploy Settings modal.
+  };
 
   return (
     <div className="text-white space-y-6">
       <div>
-        <h3 className="section-label mb-1">Advanced</h3>
-        <p className="text-[10px] text-white/25">Configure external API connections</p>
+        <h3 className="section-label mb-1">Advanced Settings</h3>
+        <p className="text-[10px] text-white/25">Power user toggles and data management</p>
+      </div>
+
+      {/* Click Behavior Toggles */}
+      <div className="bg-white/[0.03] rounded-lg p-4 border border-white/[0.08] space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-white">Download image on tweet click</h4>
+            <p className="text-[10px] text-white/25 mt-0.5">Click any tweet to download first image/thumbnail, or profile picture if no media</p>
+          </div>
+          <Switch
+            checked={downloadOnClick}
+            onCheckedChange={(checked) => {
+              setDownloadOnClick(checked);
+              storeSet('nnn-download-on-click', String(checked));
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-white">Copy post URL on tweet click</h4>
+            <p className="text-[10px] text-white/25 mt-0.5">Click any tweet to copy the Twitter/X URL to clipboard</p>
+          </div>
+          <Switch
+            checked={copyUrlOnClick}
+            onCheckedChange={(checked) => {
+              setCopyUrlOnClick(checked);
+              storeSet('nnn-copy-url-on-click', String(checked));
+            }}
+          />
+        </div>
       </div>
 
       {/* Axiom Status (read-only) */}
@@ -1440,7 +1823,6 @@ function AdvancedTab() {
           {axiomStatus === true ? 'Axiom cookie is configured and active.' : axiomStatus === false ? 'Axiom cookie not set. Contact admin.' : 'Checking...'}
         </p>
       </div>
-
 
       {/* AI On/Off Toggle */}
       <div className="bg-white/[0.03] rounded-lg p-4 border border-white/[0.08]">
@@ -1459,6 +1841,94 @@ function AdvancedTab() {
         </div>
       </div>
 
+      {/* Backup & Restore */}
+      <div className="border-t border-white/[0.06] pt-5">
+        <h3 className="text-sm font-bold text-white text-center mb-1">Backup & Restore</h3>
+        <div className="flex gap-2 justify-center mt-3">
+          <button
+            onClick={exportSettings}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-xs font-medium text-white/70"
+          >
+            <Upload size={12} /> Export Settings
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-xs font-medium text-white/70"
+          >
+            <Upload size={12} className="rotate-180" /> Import Settings
+          </button>
+        </div>
+        {exportStatus && <p className="text-center text-[10px] text-emerald-400 mt-2">{exportStatus}</p>}
+        <p className="text-[10px] text-white/25 text-center mt-2">Export/import tracker settings (sounds, notifications, appearance, keywords). Deploy settings are managed in Deploy Settings.</p>
+      </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowImportModal(false)}>
+          <div className="bg-[#111] border border-white/[0.08] rounded-xl p-5 w-[480px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white">Import Settings</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-white/30 hover:text-white p-1"><X size={16} /></button>
+            </div>
+
+            {/* Import type selector */}
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setImportType('nnn')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${importType === 'nnn' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/[0.03] text-white/40 border border-white/[0.06]'}`}
+              >
+                NNN Tracker
+              </button>
+              <button
+                onClick={() => setImportType('j7')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${importType === 'j7' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-white/[0.03] text-white/40 border border-white/[0.06]'}`}
+              >
+                J7 Tracker
+              </button>
+            </div>
+
+            <p className="text-[10px] text-white/30 mb-2">
+              {importType === 'nnn'
+                ? 'Paste settings JSON exported from NNN Tracker. Deploy settings are imported separately in Deploy Settings.'
+                : 'Paste your J7 Tracker settings JSON. Maps sounds, notifications, keywords, and appearance. Deploy settings (presets, keybinds, buy amounts) are imported in Deploy Settings.'}
+            </p>
+
+            <textarea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder={importType === 'j7' ? '{"notificationsEnabled":true, ...}' : '{"nnn-sounds-enabled":"true", ...}'}
+              className="w-full h-32 bg-white/[0.03] border border-white/[0.06] rounded-lg p-3 text-xs text-white/80 font-mono resize-none focus:outline-none focus:border-white/[0.15]"
+            />
+
+            {importStatus && <p className={`text-[10px] mt-2 ${importStatus.includes('Invalid') ? 'text-red-400' : 'text-emerald-400'}`}>{importStatus}</p>}
+
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setShowImportModal(false)} className="flex-1 py-2 rounded-lg bg-white/[0.04] text-white/40 text-xs font-medium hover:bg-white/[0.08] transition-colors">Cancel</button>
+              <button
+                onClick={importSettings}
+                className="flex-1 py-2 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/30 border border-blue-500/30 transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout */}
+      <div className="border-t border-white/[0.06] pt-5">
+        <button
+          onClick={() => {
+            localStorage.removeItem('chud-api-key');
+            window.location.reload();
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors text-xs font-semibold text-red-400"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          Logout
+        </button>
+        <p className="text-[10px] text-white/20 mt-2">This will clear your session and reload the page</p>
+      </div>
     </div>
   );
 }

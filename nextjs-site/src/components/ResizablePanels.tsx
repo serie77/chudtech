@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo, Fragment, startTransition } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, Fragment, startTransition, lazy, Suspense } from "react";
 import Panel1 from "./Panel1";
 import TokenSearch, { type TokenResult } from "./TokenSearch";
 import ImageBrowser, { type ImageFile } from "./ImageBrowser";
@@ -11,6 +11,9 @@ import SettingsModal from "./SettingsModal";
 import DeploySettingsModal from "./DeploySettingsModal";
 import ImageLibraryModal from "./ImageLibraryModal";
 import VampModal, { type VampData } from "./VampModal";
+
+// Lazy-load Launchblitz layout — only fetched when user selects it
+const LaunchblitzLayout = lazy(() => import("./LaunchblitzLayout"));
 import { getTheme } from "@/utils/themes";
 import { Keyword } from "@/utils/highlightHelper";
 import { useJ7Feed } from "@/hooks/useJ7Feed";
@@ -373,6 +376,22 @@ export default function ResizablePanels() {
   
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  // UI preference — 'nnn' (default) or 'launchblitz'
+  const [uiPreference, setUiPreference] = useState(() => {
+    if (typeof window !== 'undefined') return storeGet('nnn-ui-preference') || 'nnn';
+    return 'nnn';
+  });
+  // Re-read on settings change (user may toggle in settings modal)
+  useEffect(() => {
+    const check = () => {
+      const val = storeGet('nnn-ui-preference') || 'nnn';
+      setUiPreference(prev => prev !== val ? val : prev);
+    };
+    window.addEventListener('storage', check);
+    const interval = setInterval(check, 1000); // poll for same-tab localStorage changes
+    return () => { window.removeEventListener('storage', check); clearInterval(interval); };
+  }, []);
 
   // Panel visibility — persisted to localStorage
   const [panelVisibility, setPanelVisibility] = useState<Record<string, boolean>>(() => {
@@ -859,7 +878,7 @@ export default function ResizablePanels() {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
     
     switch(soundName) {
       case "Beep": oscillator.frequency.setValueAtTime(800, audioContext.currentTime); oscillator.type = "sine"; break;
@@ -885,14 +904,15 @@ export default function ResizablePanels() {
     const authorData = j7Tweet.author || {};
     
     // For retweets/quotes, we show the POSTER's info in header, but ORIGINAL content
-    const username = authorData?.handle || 
-                     authorData?.name || 
+    const rawUsername = authorData?.handle ||
+                     authorData?.name ||
                      authorData?.username ||
                      authorData?.screenName ||
                      j7Tweet.username ||
                      j7Tweet.handle ||
                      j7Tweet.screenName ||
                      'unknown';
+    const username = rawUsername.replace(/^@/, '');
     
     const displayName = authorData?.name || 
                        authorData?.displayName ||
@@ -985,9 +1005,9 @@ export default function ResizablePanels() {
 
       quotedTweet = {
         id: qt.id || 'quoted',
-        username: qt.username || qt.author?.handle || 'unknown',
+        username: (qt.username || qt.author?.handle || 'unknown').replace(/^@/, ''),
         displayName: qt.displayName || qt.author?.name || qt.author?.handle || 'Unknown',
-        handle: qt.handle || `@${qt.username || qt.author?.handle || 'unknown'}`,
+        handle: qt.handle?.startsWith('@') ? qt.handle : `@${(qt.username || qt.author?.handle || 'unknown').replace(/^@/, '')}`,
         verified: qt.verified || qt.author?.verified || false,
         timestamp: qt.createdAt ? new Date(qt.createdAt).toISOString() : (qt.timestamp || timestamp),
         text: qt.text || '',
@@ -1011,9 +1031,9 @@ export default function ResizablePanels() {
       }
       repliedToTweet = {
         id: rt.id || 'replied',
-        username: rt.username || 'unknown',
+        username: (rt.username || 'unknown').replace(/^@/, ''),
         displayName: rt.displayName || rt.username || 'Unknown',
-        handle: rt.handle || `@${rt.username || 'unknown'}`,
+        handle: rt.handle?.startsWith('@') ? rt.handle : `@${(rt.username || 'unknown').replace(/^@/, '')}`,
         verified: rt.verified || false,
         timestamp: rt.timestamp || timestamp,
         text: rt.text || '',
@@ -1091,6 +1111,17 @@ export default function ResizablePanels() {
         linkPreviews.push(lp);
       });
     }
+    // Fallback: extract URLs from tweet text if no link previews were provided
+    if (linkPreviews.length === 0 && j7Tweet.text) {
+      const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+      const urls = j7Tweet.text.match(urlRegex) || [];
+      urls.forEach((u: string) => {
+        // Skip twitter/x.com links — those aren't article previews
+        if (!u.includes('twitter.com') && !u.includes('x.com')) {
+          linkPreviews.push({ url: u });
+        }
+      });
+    }
 
     // For RETWEETS, create an embedded tweet for the original content
     // Only rebuild from J7-style fields if Bark didn't already provide quotedTweet
@@ -1151,21 +1182,7 @@ export default function ResizablePanels() {
       followedUser: j7Tweet.followedUser,
     };
 
-    // Enrich link previews missing images with OG image fetch (async, non-blocking)
-    const linksNeedingImages = (newTweet.linkPreviews || []).filter(lp => !lp.image && lp.url && !lp.url.includes('twitter.com') && !lp.url.includes('x.com'));
-    if (linksNeedingImages.length > 0) {
-      Promise.all(linksNeedingImages.slice(0, 3).map(async lp => {
-        try {
-          const res = await fetch(`/api/og-image?url=${encodeURIComponent(lp.url)}`);
-          const data = await res.json();
-          if (data.image) lp.image = data.image;
-        } catch {}
-      })).then(() => {
-        // Force re-render with updated link preview images
-        setTweets(prev => prev.map(t => t.id === newTweet.id ? { ...t, linkPreviews: [...(t.linkPreviews || [])] } : t));
-      });
-    }
-
+    // Render tweet FIRST — preloading happens after
     if (feedPausedRef.current) {
       tweetBufferRef.current = [newTweet, ...tweetBufferRef.current];
       setBufferedCount(tweetBufferRef.current.length);
@@ -1177,6 +1194,55 @@ export default function ResizablePanels() {
     if (customNotif && customNotif.sound !== "None (Highlight Only)") {
       playNotificationSound(customNotif.sound);
     }
+
+    // Preload ALL images after tweet is rendered — non-blocking
+    queueMicrotask(() => {
+      const px = (u: string) => `/api/proxy-image?url=${encodeURIComponent(u)}`;
+      const preload = (u: string) => { const img = new Image(); img.src = px(u); };
+
+      // Collect every image URL in the tweet
+      const urls: string[] = [];
+
+      // Profile pics
+      if (newTweet.profilePic) urls.push(newTweet.profilePic);
+      if (newTweet.quotedTweet?.profilePic) urls.push(newTweet.quotedTweet.profilePic);
+      if (newTweet.repliedToTweet?.profilePic) urls.push(newTweet.repliedToTweet.profilePic);
+      if (newTweet.followedUser?.profilePic) urls.push(newTweet.followedUser.profilePic);
+
+      // Standalone imageUrl
+      if (newTweet.imageUrl) urls.push(newTweet.imageUrl);
+
+      // Media (images, gifs, video thumbnails)
+      for (const t of [newTweet, newTweet.quotedTweet, newTweet.repliedToTweet]) {
+        if (!t?.media) continue;
+        for (const m of t.media) {
+          if (m.type !== 'video') urls.push(m.url);
+          if ((m as any).thumbnail) urls.push((m as any).thumbnail);
+        }
+      }
+
+      // Preload all unique image URLs
+      const seen = new Set<string>();
+      urls.filter(Boolean).forEach(u => { if (!seen.has(u)) { seen.add(u); preload(u); } });
+
+      // Pre-fetch full link metadata so LinkPreviewCard has data immediately
+      const linksToEnrich = (newTweet.linkPreviews || []).filter(lp => (!lp.title || !lp.image) && lp.url && !lp.url.includes('twitter.com') && !lp.url.includes('x.com'));
+      if (linksToEnrich.length > 0) {
+        Promise.all(linksToEnrich.slice(0, 3).map(async lp => {
+          try {
+            const res = await fetch(`/api/link-metadata?url=${encodeURIComponent(lp.url)}`);
+            const data = await res.json();
+            if (data.image) lp.image = data.image;
+            if (data.title) lp.title = data.title;
+            if (data.description) lp.description = data.description;
+            if (data.domain) lp.domain = data.domain;
+            if (lp.image) preload(lp.image);
+          } catch {}
+        })).then(() => {
+          setTweets(prev => prev.map(t => t.id === newTweet.id ? { ...t, linkPreviews: [...(t.linkPreviews || [])] } : t));
+        });
+      }
+    });
   }, [playNotificationSound]);
 
   const handleFeedHover = useCallback((hovered: boolean) => {
@@ -1203,12 +1269,12 @@ export default function ResizablePanels() {
       const authorData = j7Tweet.author || {};
       const contentSource = j7Tweet.isRetweet && j7Tweet.originalAuthor ? j7Tweet.originalAuthor : j7Tweet.author;
       
-      const username = contentSource?.handle || 
-                       contentSource?.name || 
-                       authorData?.handle || 
-                       authorData?.name || 
+      const username = (contentSource?.handle ||
+                       contentSource?.name ||
+                       authorData?.handle ||
+                       authorData?.name ||
                        j7Tweet.handle ||
-                       'unknown';
+                       'unknown').replace(/^@/, '');
       
       const displayName = contentSource?.name || 
                          contentSource?.handle || 
@@ -1316,8 +1382,32 @@ export default function ResizablePanels() {
         };
       }
 
-      // Pass through linkPreviews
-      const initLinkPreviews = j7Tweet.linkPreviews || undefined;
+      // Extract link previews
+      const initLinkPreviews: Array<{url: string; title?: string; description?: string; image?: string; domain?: string}> = [];
+      if (j7Tweet.links && Array.isArray(j7Tweet.links)) {
+        j7Tweet.links.forEach((link: any) => {
+          initLinkPreviews.push({
+            url: link.url || link.expandedUrl || '',
+            title: link.title,
+            description: link.description,
+            image: link.image || link.thumbnail,
+            domain: link.domain || (() => { try { return new URL(link.url || link.expandedUrl || 'https://example.com').hostname; } catch { return ''; } })(),
+          });
+        });
+      }
+      if (initLinkPreviews.length === 0 && j7Tweet.linkPreviews && Array.isArray(j7Tweet.linkPreviews)) {
+        j7Tweet.linkPreviews.forEach((lp: any) => initLinkPreviews.push(lp));
+      }
+      // Fallback: extract URLs from tweet text
+      if (initLinkPreviews.length === 0 && j7Tweet.text) {
+        const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+        const urls = j7Tweet.text.match(urlRegex) || [];
+        urls.forEach((u: string) => {
+          if (!u.includes('twitter.com') && !u.includes('x.com')) {
+            initLinkPreviews.push({ url: u });
+          }
+        });
+      }
 
       // Determine originalAuthorHandle for retweets
       const origAuthor = isRetweet
@@ -1344,27 +1434,53 @@ export default function ResizablePanels() {
         originalAuthorHandle: origAuthor,
         quotedTweet: initQuotedTweet,
         repliedToTweet: initRepliedTo,
-        linkPreviews: initLinkPreviews,
+        linkPreviews: initLinkPreviews.length > 0 ? initLinkPreviews : undefined,
         followedUser: j7Tweet.followedUser,
       };
     });
 
     setTweets(prev => [...convertedTweets, ...prev]);
 
-    // Enrich link previews missing images with OG fetch (non-blocking)
-    convertedTweets.forEach(tweet => {
-      const linksNeedingImages = (tweet.linkPreviews || []).filter(lp => !lp.image && lp.url && !lp.url.includes('twitter.com') && !lp.url.includes('x.com'));
-      if (linksNeedingImages.length > 0) {
-        Promise.all(linksNeedingImages.slice(0, 3).map(async lp => {
-          try {
-            const res = await fetch(`/api/og-image?url=${encodeURIComponent(lp.url)}`);
-            const data = await res.json();
-            if (data.image) lp.image = data.image;
-          } catch {}
-        })).then(() => {
-          setTweets(prev => prev.map(t => t.id === tweet.id ? { ...t, linkPreviews: [...(t.linkPreviews || [])] } : t));
-        });
-      }
+    // Preload after render — all images + link metadata
+    queueMicrotask(() => {
+      const pxUrl = (u: string) => `/api/proxy-image?url=${encodeURIComponent(u)}`;
+      const preload = (u: string) => { const img = new Image(); img.src = pxUrl(u); };
+      const seen = new Set<string>();
+      const preloadOnce = (u: string) => { if (u && !seen.has(u)) { seen.add(u); preload(u); } };
+
+      convertedTweets.forEach(tweet => {
+        // All images: profile pics, media, thumbnails, imageUrl, embedded tweets, follow cards
+        if (tweet.profilePic) preloadOnce(tweet.profilePic);
+        if (tweet.imageUrl) preloadOnce(tweet.imageUrl);
+        if (tweet.quotedTweet?.profilePic) preloadOnce(tweet.quotedTweet.profilePic);
+        if (tweet.repliedToTweet?.profilePic) preloadOnce(tweet.repliedToTweet.profilePic);
+        if (tweet.followedUser?.profilePic) preloadOnce(tweet.followedUser.profilePic);
+        for (const t of [tweet, tweet.quotedTweet, tweet.repliedToTweet]) {
+          if (!t?.media) continue;
+          for (const m of t.media) {
+            if (m.type !== 'video') preloadOnce(m.url);
+            if ((m as any).thumbnail) preloadOnce((m as any).thumbnail);
+          }
+        }
+
+        // Pre-fetch link metadata
+        const linksToEnrich = (tweet.linkPreviews || []).filter(lp => (!lp.title || !lp.image) && lp.url && !lp.url.includes('twitter.com') && !lp.url.includes('x.com'));
+        if (linksToEnrich.length > 0) {
+          Promise.all(linksToEnrich.slice(0, 3).map(async lp => {
+            try {
+              const res = await fetch(`/api/link-metadata?url=${encodeURIComponent(lp.url)}`);
+              const data = await res.json();
+              if (data.image) lp.image = data.image;
+              if (data.title) lp.title = data.title;
+              if (data.description) lp.description = data.description;
+              if (data.domain) lp.domain = data.domain;
+              if (lp.image) preloadOnce(lp.image);
+            } catch {}
+          })).then(() => {
+            setTweets(prev => prev.map(t => t.id === tweet.id ? { ...t, linkPreviews: [...(t.linkPreviews || [])] } : t));
+          });
+        }
+      });
     });
   }, []);
 
@@ -1378,8 +1494,8 @@ export default function ResizablePanels() {
     const follower = data.follower || data.user || {};
     const following = data.following || data.target || {};
     
-    const username = follower.handle || follower.username || 'someone';
-    const targetUsername = following.handle || following.username || 'someone';
+    const username = (follower.handle || follower.username || 'someone').replace(/^@/, '');
+    const targetUsername = (following.handle || following.username || 'someone').replace(/^@/, '');
     
     const eventTweet: Tweet = {
       id: `follow-${Date.now()}-${Math.random()}`,
@@ -1402,8 +1518,8 @@ export default function ResizablePanels() {
     const unfollower = data.unfollower || data.user || {};
     const unfollowing = data.unfollowing || data.target || {};
     
-    const username = unfollower.handle || unfollower.username || 'someone';
-    const targetUsername = unfollowing.handle || unfollowing.username || 'someone';
+    const username = (unfollower.handle || unfollower.username || 'someone').replace(/^@/, '');
+    const targetUsername = (unfollowing.handle || unfollowing.username || 'someone').replace(/^@/, '');
     
     const eventTweet: Tweet = {
       id: `unfollow-${Date.now()}-${Math.random()}`,
@@ -1424,7 +1540,7 @@ export default function ResizablePanels() {
   // Handle deactivation events - Create notification tweet and remove their tweets
   const handleDeactivation = useCallback((data: any) => {
     const user = data.user || data;
-    const username = user.handle || user.username || 'someone';
+    const username = (user.handle || user.username || 'someone').replace(/^@/, '');
     
     const eventTweet: Tweet = {
       id: `deactivation-${Date.now()}-${Math.random()}`,
@@ -1544,13 +1660,18 @@ export default function ResizablePanels() {
       }
     });
 
-    // Fetch OG images for all collected URLs
+    // Fetch OG images for all collected URLs (use link-metadata which is more robust)
     if (ogUrlsToTry.length > 0) {
       const ogFetches = ogUrlsToTry.slice(0, 4).map(async u => {
         try {
-          const res = await fetch(`/api/og-image?url=${encodeURIComponent(u)}`);
+          const res = await fetch(`/api/link-metadata?url=${encodeURIComponent(u)}`);
           const data = await res.json();
-          if (data.image) add(data.image);
+          if (data.image) {
+            add(data.image);
+            // Also write back to the linkPreview object so Panel3 doesn't re-fetch
+            const lp = tweet.linkPreviews?.find(l => l.url === u);
+            if (lp && !lp.image) lp.image = data.image;
+          }
         } catch {}
       });
       await Promise.all(ogFetches);
@@ -1625,7 +1746,7 @@ export default function ResizablePanels() {
         body: JSON.stringify({ account: aiAccount, text: aiText }),
       }).then(r => r.json()),
     ])
-      .then(([tweetImages, data]) => {
+      .then(async ([tweetImages, data]) => {
         const suggestions: Array<{ name: string; ticker: string }> = data.suggestions
           ? data.suggestions.map((s: { name: string; ticker?: string }) => ({
               name: s.name,
@@ -1634,15 +1755,23 @@ export default function ResizablePanels() {
           : data.name ? [{ name: data.name, ticker: (data.ticker || data.name).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 13) }] : [];
 
         if (suggestions.length > 0) {
+          // Generate ASCII art image for the primary suggestion and prepend it
+          let images = tweetImages;
+          try {
+            const asciiDataUrl = await generatePresetImage('ASCII Art', suggestions[0].ticker);
+            if (asciiDataUrl) images = [asciiDataUrl, ...tweetImages];
+          } catch {}
+
           setAiResults(prev => ({
             ...prev,
             [tweetId]: {
               name: suggestions[0].name,
               ticker: suggestions[0].ticker,
-              images: tweetImages,
+              images,
               suggestions,
             },
           }));
+
         }
       })
       .catch(() => {});
@@ -1720,7 +1849,9 @@ export default function ResizablePanels() {
   // Global keybind listener for Custom Presets
   useEffect(() => {
     const handleGlobalKeyPress = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
+      // Skip plain keypresses in input fields, but allow modifier combos (Alt+A, Ctrl+X, etc.)
+      if (!hasModifier && (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) return;
 
       const key = e.key.toUpperCase();
       const modifiers = [];
@@ -1733,16 +1864,33 @@ export default function ResizablePanels() {
       
       if (matchingPreset) {
         const selection = window.getSelection();
-        const selectedText = selection?.toString().trim();
-        
+        let selectedText = selection?.toString().trim() || '';
+
+        // If no text selected, check if the deploy panel name input has a value (from double-click fill)
+        if (!selectedText) {
+          const nameInput = document.querySelector('input[placeholder="Token name"], input[placeholder="Coin name"]') as HTMLInputElement;
+          if (nameInput?.value?.trim()) {
+            selectedText = nameInput.value.trim();
+          }
+        }
+
+        // If still no text, use the latest tweet's display name or first word of text
+        if (!selectedText && tweets.length > 0) {
+          const latest = tweets[0];
+          selectedText = latest.displayName || latest.username || '';
+        }
+
         if (!selectedText) return;
-        
+
         // Helper function to check if text exists in a tweet (including nested tweets)
         const textMatchesTweet = (tweet: Tweet, searchText: string): boolean => {
           const lowerSearch = searchText.toLowerCase();
           if (tweet.text && tweet.text.toLowerCase().includes(lowerSearch)) return true;
           if (tweet.quotedTweet?.text && tweet.quotedTweet.text.toLowerCase().includes(lowerSearch)) return true;
           if (tweet.repliedToTweet?.text && tweet.repliedToTweet.text.toLowerCase().includes(lowerSearch)) return true;
+          // Also match by display name / username
+          if (tweet.displayName?.toLowerCase().includes(lowerSearch)) return true;
+          if (tweet.username?.toLowerCase().includes(lowerSearch)) return true;
           return false;
         };
 
@@ -1784,12 +1932,12 @@ export default function ResizablePanels() {
         let tweetImageUrl: string | undefined = undefined;
         let tweetLink: string | undefined = undefined;
 
-        if (matchingPreset.imageType === 'Image in Post') {
-          const matchingTweet = tweets.find(tweet => textMatchesTweet(tweet, selectedText));
-          if (matchingTweet) {
+        // Always find the matching tweet for link + image
+        const matchingTweet = tweets.find(tweet => textMatchesTweet(tweet, selectedText)) || (tweets.length > 0 ? tweets[0] : undefined);
+        if (matchingTweet) {
+          tweetLink = buildTweetUrl(matchingTweet.username, matchingTweet.twitterStatusId);
+          if (matchingPreset.imageType === 'Image in Post') {
             tweetImageUrl = getBestImageForPreset(matchingTweet);
-            // Also get tweet link
-            tweetLink = buildTweetUrl(matchingTweet.username, matchingTweet.twitterStatusId);
           }
         }
         
@@ -1992,9 +2140,21 @@ export default function ResizablePanels() {
       n.username.toLowerCase() === tweetData.handle.toLowerCase()
     );
     
+    // Extract link previews from tweet text
+    const linkPreviews: Array<{url: string; title?: string; description?: string; image?: string; domain?: string}> = [];
+    if (tweetData.text) {
+      const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+      const urls = tweetData.text.match(urlRegex) || [];
+      urls.forEach((u: string) => {
+        if (!u.includes('twitter.com') && !u.includes('x.com')) {
+          linkPreviews.push({ url: u });
+        }
+      });
+    }
+
     return {
       id: `${tweetId}-${Date.now()}-${Math.random()}`,
-      username: tweetData.username,
+      username: tweetData.username.replace(/^@/, ''),
       displayName: tweetData.displayName,
       handle: tweetData.handle,
       verified: tweetData.verified,
@@ -2005,6 +2165,7 @@ export default function ResizablePanels() {
       profilePic: tweetData.profilePic,
       twitterStatusId: tweetData.twitterStatusId || tweetId,
       highlightColor: customNotif?.color,
+      linkPreviews: linkPreviews.length > 0 ? linkPreviews : undefined,
     };
   };
 
@@ -2348,11 +2509,157 @@ export default function ResizablePanels() {
     }
   }, [currentTheme, activeWallet, wallets, presetTrigger, deployedImageUrl, deployedImageOptions, deployedTwitterUrl, clearTrigger, tweets, testMode, panel1NameValue, tokenSearchQuery, vampData, settingsVersion, panel2SelectedImagePath, theme, aiResults, customNotifications, defaultColor, browserImages, feedPaused, bufferedCount, handleFeedHover, handleBrowserImagesLoaded]);
 
+  // Launch tweet handler for Launchblitz layout — mirrors Panel3's onDeploy
+  const handleLaunchTweet = useCallback((tweet: Tweet) => {
+    const statusId = tweet.twitterStatusId?.replace(/^[a-zA-Z-]+/, '');
+    const url = statusId && /^\d+$/.test(statusId)
+      ? `https://x.com/${tweet.username}/status/${statusId}`
+      : `https://x.com/${tweet.username}`;
+    // Extract all images from tweet (same logic as Panel3's collectAllImages)
+    const images: string[] = [];
+    const add = (u: string) => { if (u && !images.includes(u)) images.push(u); };
+    tweet.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
+    if (tweet.imageUrl) add(tweet.imageUrl);
+    tweet.quotedTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
+    if (tweet.quotedTweet?.imageUrl) add(tweet.quotedTweet.imageUrl);
+    tweet.repliedToTweet?.media?.forEach(m => { if (m.type !== 'video') add(m.url); else if (m.thumbnail) add(m.thumbnail); });
+    if (tweet.repliedToTweet?.imageUrl) add(tweet.repliedToTweet.imageUrl);
+    tweet.linkPreviews?.forEach(lp => { if (lp.image) add(lp.image); });
+    if (tweet.followedUser?.profilePic) add(tweet.followedUser.profilePic);
+    if (tweet.profilePic) add(tweet.profilePic);
+    setClearTrigger(prev => prev + 1);
+    if (images.length > 0) {
+      setDeployedImageOptions(images);
+      setDeployedImageUrl(images[0]);
+    }
+    setDeployedTwitterUrl(url);
+  }, []);
+
+  // Render deploy panel for Launchblitz layout
+  const renderDeployPanelForLB = useCallback(() => {
+    return (
+      <div className="relative h-full">
+        {deployFlash && (
+          <div className="absolute inset-0 z-10 pointer-events-none rounded-md border-2 border-blue-500/60 animate-[flash_0.6s_ease-out_forwards]" />
+        )}
+        <Panel1
+          themeId={currentTheme}
+          activeWallet={activeWallet}
+          wallets={wallets}
+          onWalletSelect={setActiveWallet}
+          presetTrigger={presetTrigger}
+          onPresetApplied={() => setPresetTrigger(null)}
+          deployedImageUrl={deployedImageUrl}
+          deployedImageOptions={deployedImageOptions}
+          deployedTwitterUrl={deployedTwitterUrl}
+          forceSelectImage={forceSelectImage}
+          onImageDeployed={() => { setDeployedImageUrl(null); setDeployedImageOptions([]); setForceSelectImage(false); }}
+          onTwitterDeployed={() => setDeployedTwitterUrl(null)}
+          clearTrigger={clearTrigger}
+          tweets={tweets}
+          testMode={testMode}
+          onNameChange={setPanel1NameValue}
+          onTokenSearch={(query: string) => setTokenSearchQuery(query)}
+          vampData={vampData}
+          onVampApplied={() => setVampData(null)}
+          settingsVersion={settingsVersion}
+          browserImages={browserImages}
+          editMode={false}
+          variant="launchblitz"
+        />
+      </div>
+    );
+  }, [currentTheme, activeWallet, wallets, presetTrigger, deployedImageUrl, deployedImageOptions, deployedTwitterUrl, forceSelectImage, clearTrigger, tweets, testMode, vampData, settingsVersion, browserImages, deployFlash]);
+
+  // Render token search panel for Launchblitz layout
+  const renderTokenSearchForLB = useCallback(() => {
+    return (
+      <div className="h-full lb-token-search">
+        <TokenSearch
+          themeId={currentTheme}
+          variant="launchblitz"
+          onTokenSelected={(token: TokenResult) => {
+            setVampData({
+              tokenName: token.name || "",
+              tokenSymbol: token.symbol || "",
+              tokenImage: token.imageUrl || "",
+              website: "",
+              twitter: "",
+            });
+          }}
+          onImageOnly={(imageUrl: string) => {
+            setDeployedImageUrl(imageUrl);
+            setForceSelectImage(true);
+          }}
+          onSearchImages={(imageUrls: string[]) => {
+            if (imageUrls.length > 0) {
+              setDeployedImageOptions(imageUrls);
+              setDeployedImageUrl(imageUrls[0]);
+              setForceSelectImage(false);
+            }
+          }}
+          externalQuery={tokenSearchQuery}
+        />
+      </div>
+    );
+  }, [currentTheme, tokenSearchQuery]);
+
   if (!mounted) return <div className="h-screen w-full bg-[#0a0a0a]" />;
 
+  // Launchblitz layout
+  if (uiPreference === 'launchblitz') {
+    return (
+      <>
+        <Suspense fallback={<div className="h-screen w-full bg-[#0a0a0a]" />}>
+          <LaunchblitzLayout
+            tweets={tweets}
+            isConnected={isConnected}
+            onlineCount={onlineCount}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenDeploySettings={() => setIsDeploySettingsOpen(true)}
+            onParseTweetUrl={(url) => parseTweetUrl(url)}
+            onLaunchTweet={handleLaunchTweet}
+            renderDeployPanel={renderDeployPanelForLB}
+            renderTokenSearch={renderTokenSearchForLB}
+            feedPaused={feedPaused}
+            onHoverChange={handleFeedHover}
+            bufferedCount={bufferedCount}
+          />
+        </Suspense>
+
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} currentTheme={currentTheme} onThemeChange={setCurrentTheme}
+          customNotifications={customNotifications} onCustomNotificationsChange={setCustomNotifications} defaultColor={defaultColor} onDefaultColorChange={setDefaultColor}
+          highlightingEnabled={highlightingEnabled} onHighlightingEnabledChange={setHighlightingEnabled}
+          highlightSoundsEnabled={highlightSoundsEnabled} onHighlightSoundsEnabledChange={setHighlightSoundsEnabled}
+          keywords={keywords} onKeywordsChange={setKeywords}
+          panelVisibility={panelVisibility} onTogglePanel={togglePanel} onResetLayout={resetLayout}
+          panelOrder={panelOrder} onApplyPreset={applyPreset}
+          showPrices={showPrices} onShowPricesChange={setShowPrices} />
+
+        <DeploySettingsModal isOpen={isDeploySettingsOpen} onClose={() => { setIsDeploySettingsOpen(false); setSettingsVersion(v => v + 1); }} onWalletChange={setActiveWallet}
+          wallets={wallets} onWalletsChange={setWallets}
+          presets={customPresets} onPresetsChange={setCustomPresets} themeId={currentTheme} />
+
+        <ImageLibraryModal
+          isOpen={isImageLibraryOpen}
+          onClose={() => setIsImageLibraryOpen(false)}
+          onSelectImage={(imageUrl: string) => { setDeployedImageUrl(imageUrl); }}
+          themeId={currentTheme}
+        />
+
+        <VampModal
+          isOpen={isVampOpen}
+          onClose={() => setIsVampOpen(false)}
+          onResult={(data) => setVampData(data)}
+        />
+      </>
+    );
+  }
+
+  // Default NNN layout
   return (
-    <div ref={containerRef} className="flex flex-col h-screen w-full overflow-hidden select-none">
-      <div ref={headerRef} className={`w-full ${theme.header} border-b border-white/[0.06]`}>
+    <div ref={containerRef} className="flex flex-col h-screen w-full overflow-hidden">
+      <div ref={headerRef} className={`w-full ${theme.header} border-b border-white/[0.06] select-none`}>
         <div className="flex items-center justify-center h-9 px-2 relative">
           {/* Live prices — far left */}
           {showPrices && (
@@ -2431,15 +2738,15 @@ export default function ResizablePanels() {
             <Button variant="ghost" size="sm" onClick={() => {}} title={`${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}>
               <Users size={12} />
               <span className="tabular-nums">{onlineCount}</span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                title={isConnected ? (USE_BARK_API ? 'Bark Connected' : 'J7 Connected') : (USE_BARK_API ? 'Bark Disconnected' : 'J7 Disconnected')}
+              />
             </Button>
 
             <Button variant="ghost" size="sm" onClick={() => setIsVampOpen(true)}>
               <Zap size={12} />
               <span>Vamp</span>
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
-                title={isConnected ? (USE_BARK_API ? 'Bark Connected' : 'J7 Connected') : (USE_BARK_API ? 'Bark Disconnected' : 'J7 Disconnected')}
-              />
             </Button>
 
             <div className="w-px h-3.5 bg-white/[0.06] mx-1" />

@@ -81,35 +81,36 @@ export default function VampModal({ isOpen, onClose, onResult }: VampModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[400px] max-w-[400px] p-0">
+      <DialogContent className="w-[420px] max-w-[420px] p-0">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Zap size={14} className="text-yellow-400" />
-            Vamp - Token Lookup
+          <DialogTitle className="flex items-center gap-2 text-[13px]">
+            <Zap size={13} className="text-yellow-400" />
+            Vamp
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-3">
+        <form onSubmit={handleSubmit} className="px-4 pb-4 pt-3">
+          <label className="text-[11px] text-white/40 mb-1.5 block">Contract Address</label>
           <div className="flex gap-2">
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Paste contract address..."
+              placeholder="Paste CA..."
               value={ca}
               onChange={(e) => setCa(e.target.value)}
-              className="flex-1 text-xs py-2 rounded-md font-mono"
+              className="flex-1 text-[11px] h-8 bg-white/[0.03] border-white/[0.06] placeholder-white/20 font-mono"
             />
             <Button
               type="submit"
               disabled={loading || !ca.trim()}
-              className="min-w-[52px]"
-              size="default"
+              size="sm"
+              className="h-8 px-4 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 text-[11px] font-medium"
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : "Fetch"}
+              {loading ? <Loader2 size={12} className="animate-spin" /> : "Fetch"}
             </Button>
           </div>
           {error && (
-            <p className="text-[11px] text-red-400 mt-2">{error}</p>
+            <p className="text-[10px] text-red-400/80 mt-2">{error}</p>
           )}
         </form>
       </DialogContent>

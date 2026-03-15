@@ -220,7 +220,7 @@ const MediaGrid = memo(function MediaGrid({ media }: { media: Array<{ type: stri
   const count = Math.min(images.length, 4);
 
   return (
-    <div className="mt-2.5">
+    <div className="mt-3">
       {count > 0 && (
         <div
           className="grid gap-0.5 rounded-lg overflow-hidden"
@@ -232,7 +232,7 @@ const MediaGrid = memo(function MediaGrid({ media }: { media: Array<{ type: stri
                 src={px(item.url)}
                 alt=""
                 className="w-full h-full object-cover"
-                loading="lazy"
+                loading="eager"
                 style={{ maxHeight: count === 1 ? 300 : 180 }}
                 onError={hideOnError}
               />
@@ -240,20 +240,35 @@ const MediaGrid = memo(function MediaGrid({ media }: { media: Array<{ type: stri
           ))}
         </div>
       )}
-      {/* Videos with poster thumbnails + canvas fallback */}
-      {videos.map((v, i) => (
-        <div key={`v-${i}`} className="mt-1 rounded-lg overflow-hidden bg-black relative" data-mc>
-          {!v.thumbnail && <VideoThumbnail url={v.url} />}
-          <video
-            src={px(v.url)}
-            controls
-            preload="metadata"
-            poster={v.thumbnail ? px(v.thumbnail) : undefined}
-            className="w-full max-h-56"
-            style={{ maxHeight: 224 }}
-          />
-        </div>
-      ))}
+      {/* Videos with poster thumbnails + play overlay */}
+      {videos.map((v, i) => {
+        const VideoItem = () => {
+          const [playing, setPlaying] = useState(false);
+          const vidRef = useRef<HTMLVideoElement>(null);
+          if (playing) {
+            return (
+              <div className="mt-1 rounded-lg overflow-hidden bg-black relative" data-mc>
+                <video ref={vidRef} src={px(v.url)} controls autoPlay className="w-full max-h-56" style={{ maxHeight: 224 }} />
+              </div>
+            );
+          }
+          return (
+            <div className="mt-1 rounded-lg overflow-hidden bg-black relative cursor-pointer group" data-mc onClick={() => setPlaying(true)}>
+              {v.thumbnail ? (
+                <img src={px(v.thumbnail)} alt="" className="w-full max-h-56 object-cover" style={{ maxHeight: 224 }} loading="eager" onError={hideOnError} />
+              ) : (
+                <VideoThumbnail url={v.url} />
+              )}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center group-hover:bg-black/80 group-hover:scale-110 transition-all">
+                  <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                </div>
+              </div>
+            </div>
+          );
+        };
+        return <VideoItem key={`v-${i}`} />;
+      })}
     </div>
   );
 });
@@ -261,21 +276,21 @@ const MediaGrid = memo(function MediaGrid({ media }: { media: Array<{ type: stri
 // ─── Embed Card (for quoted / replied / retweeted content) ───────
 
 const EmbedCard = memo(function EmbedCard({ tweet, renderFn }: { tweet: Tweet; renderFn?: (text: string) => React.ReactNode[] }) { return (
-  <div className="mt-2.5 border-l-2 border-white/[0.10] rounded-r-lg pl-3 py-2 pr-2 bg-white/[0.02]">
-    <div className="flex items-center gap-1.5 mb-1">
+  <div className="mt-2.5 border-l-[3px] border-white/[0.10] pl-3 py-1.5 pr-2">
+    <div className="flex items-center gap-1.5 mb-1.5">
       <Avatar src={tweet.profilePic} name={tweet.username} size={16} />
-      <span className="text-white/60 font-semibold text-[11px] truncate">{tweet.displayName}</span>
+      <span className="text-white/80 font-semibold text-[11px] truncate">{tweet.displayName}</span>
       <a
         href={`https://x.com/${tweet.username}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-white/30 text-[11px] hover:underline"
+        className="text-white/25 text-[10px] hover:underline"
       >
         @{tweet.username}
       </a>
     </div>
     {tweet.text && (
-      <p className="text-white/50 text-[13px] font-medium leading-relaxed whitespace-pre-wrap break-words select-text">
+      <p className="text-white/75 text-[12.5px] font-medium leading-[1.55] whitespace-pre-wrap break-words select-text">
         {renderFn ? renderFn(tweet.text) : renderText(tweet.text)}
       </p>
     )}
@@ -284,7 +299,7 @@ const EmbedCard = memo(function EmbedCard({ tweet, renderFn }: { tweet: Tweet; r
       (tweet.media.length > 0 && !tweet.media.some(m => m.type === 'image' || m.type === 'gif') && !tweet.media.some(m => m.url === tweet.imageUrl))
     ) && (
       <div className="mt-2 rounded-lg overflow-hidden" data-mc>
-        <img src={px(tweet.imageUrl)} alt="" className="w-full max-h-48 object-cover" loading="lazy" onError={hideOnError} />
+        <img src={px(tweet.imageUrl)} alt="" className="w-full max-h-48 object-cover" loading="eager" onError={hideOnError} />
       </div>
     )}
     {tweet.media && tweet.media.length > 0 && <MediaGrid media={tweet.media} />}
@@ -317,10 +332,10 @@ const LinkPreviewCard = memo(function LinkPreviewCard({ link }: { link: { url: s
   if (fetched && !meta.title && !meta.image && !meta.description) return null;
 
   return (
-    <a href={meta.url} target="_blank" rel="noopener noreferrer" className="block border border-white/[0.06] rounded-lg overflow-hidden hover:border-white/[0.12] transition-colors bg-white/[0.02] mt-2.5">
+    <a href={meta.url} target="_blank" rel="noopener noreferrer" className="block border border-white/[0.06] rounded-lg overflow-hidden hover:border-white/[0.10] transition-colors mt-2.5">
       {meta.image && (
         <div className="bg-black" data-mc>
-          <img src={px(meta.image)} alt="" className="w-full max-h-48 object-cover" loading="lazy" onError={hideOnError} />
+          <img src={px(meta.image)} alt="" className="w-full max-h-48 object-cover" onError={hideOnError} />
         </div>
       )}
       <div className="px-3 py-2.5">
@@ -335,40 +350,48 @@ const LinkPreviewCard = memo(function LinkPreviewCard({ link }: { link: { url: s
 // ─── Action Line ─────────────────────────────────────────────────
 
 const ActionLine = memo(function ActionLine({ tweet }: { tweet: Tweet }) {
-  if (tweet.isRetweet && tweet.originalAuthorHandle) {
+  const actionContent = (() => {
+    if (tweet.isRetweet && tweet.originalAuthorHandle) {
+      return (
+        <>
+          <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
+          <span className="text-white/30"> retweeted </span>
+          <span className="text-purple-400">{tweet.originalAuthorHandle}</span>
+        </>
+      );
+    }
+    if (tweet.isReply && tweet.repliedToTweet) {
+      return (
+        <>
+          <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
+          <span className="text-white/25"> ↩ replied to </span>
+          <a href={`https://x.com/${tweet.repliedToTweet.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-400/80 hover:underline">@{tweet.repliedToTweet.username}</a>
+        </>
+      );
+    }
+    if (tweet.isQuote && tweet.quotedTweet) {
+      return (
+        <>
+          <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
+          <span className="text-white/25"> quoted </span>
+          <a href={`https://x.com/${tweet.quotedTweet.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-400/80 hover:underline">@{tweet.quotedTweet.username}</a>
+        </>
+      );
+    }
+    if (tweet.tweetType === 'FOLLOW' || tweet.tweetType === 'UNFOLLOW') return null;
     return (
-      <div className="text-[11px] mb-1.5">
+      <>
         <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
-        <span className="text-white/35"> retweeted </span>
-        <span className="text-purple-400">{tweet.originalAuthorHandle}</span>
-      </div>
+        <span className="text-white/25"> posted</span>
+      </>
     );
-  }
-  if (tweet.isReply && tweet.repliedToTweet) {
-    return (
-      <div className="text-[11px] mb-1.5">
-        <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
-        <span className="text-white/35"> replied to </span>
-        <a href={`https://x.com/${tweet.repliedToTweet.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-400/80 hover:underline">@{tweet.repliedToTweet.username}</a>
-      </div>
-    );
-  }
-  if (tweet.isQuote && tweet.quotedTweet) {
-    return (
-      <div className="text-[11px] mb-1.5">
-        <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
-        <span className="text-white/35"> quoted </span>
-        <a href={`https://x.com/${tweet.quotedTweet.username}`} target="_blank" rel="noopener noreferrer" className="text-purple-400/80 hover:underline">@{tweet.quotedTweet.username}</a>
-      </div>
-    );
-  }
-  if (tweet.tweetType === 'FOLLOW' || tweet.tweetType === 'UNFOLLOW') {
-    return null;
-  }
+  })();
+
+  if (!actionContent) return null;
+
   return (
-    <div className="text-[11px] mb-1.5">
-      <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@{tweet.username}</a>
-      <span className="text-white/35"> posted</span>
+    <div className="text-[11px] mb-2 pb-1.5 border-b border-white/[0.04]">
+      {actionContent}
     </div>
   );
 });
@@ -380,6 +403,7 @@ interface TweetCardProps {
   tweetAi?: AiHighlight;
   deployBtnPosition: 'left' | 'right' | 'top-right';
   deployBtnScale: number;
+  cardSidebarColor: string;
   onDeploy?: (images: string[], twitterUrl: string) => void;
   onFollowDeploy?: (name: string, symbol: string, imageUrl: string, twitterUrl: string) => void;
   onHighlightMouseDown: (e: React.MouseEvent, tweetId: string, ai: AiHighlight) => void;
@@ -396,15 +420,42 @@ const buildUrl = (t: Tweet) => {
   return `https://x.com/${t.username}`;
 };
 
-const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, deployBtnScale, onDeploy, onFollowDeploy, onHighlightMouseDown }: TweetCardProps) {
+const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, deployBtnScale, cardSidebarColor, onDeploy, onFollowDeploy, onHighlightMouseDown }: TweetCardProps) {
   const isDeleted = tweet.tweetType === 'DELETED';
 
   const handleDeploy = useCallback(() => {
     const allImages = collectAllImages(tweet);
     if (onDeploy && allImages.length > 0) onDeploy(allImages, buildUrl(tweet));
-    const nameInput = document.querySelector('input[placeholder="Name"]') as HTMLInputElement;
-    if (nameInput) nameInput.focus();
+    const nameInput = document.querySelector('input[placeholder="Token name"]') as HTMLInputElement;
+    if (nameInput) { nameInput.focus(); nameInput.select(); }
   }, [tweet, onDeploy]);
+
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    // Don't trigger on clicks on links, buttons, or media
+    const target = e.target as HTMLElement;
+    if (target.closest('a') || target.closest('button') || target.closest('[data-mc]') || target.closest('video')) return;
+    // Don't trigger if user is selecting text
+    const sel = window.getSelection();
+    if (sel && sel.toString().trim()) return;
+
+    const downloadOn = storeGet('nnn-download-on-click') === 'true';
+    const copyUrlOn = storeGet('nnn-copy-url-on-click') === 'true';
+
+    if (copyUrlOn) {
+      navigator.clipboard.writeText(buildUrl(tweet)).catch(() => {});
+    }
+
+    if (downloadOn) {
+      const images = collectAllImages(tweet);
+      const imgUrl = images[0] || tweet.profilePic;
+      if (imgUrl) {
+        const a = document.createElement('a');
+        a.href = `/api/proxy-image?url=${encodeURIComponent(imgUrl)}`;
+        a.download = `${tweet.username}_${Date.now()}.jpg`;
+        a.click();
+      }
+    }
+  }, [tweet]);
 
   // Render text with AI highlight
   const renderTextWithAi = useCallback((text: string, tweetId: string, ai?: AiHighlight) => {
@@ -446,10 +497,13 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
           result.push(
             <span
               key={`${i}-${j}`}
-              className="text-emerald-400 font-semibold cursor-pointer select-none relative"
+              className="text-emerald-400 font-semibold cursor-pointer relative"
               style={{
                 textShadow: '0 0 8px rgba(16,185,129,0.4)',
-                borderBottom: '1px dashed rgba(16,185,129,0.5)',
+                outline: '1.5px solid rgba(16,185,129,0.45)',
+                outlineOffset: '1.5px',
+                borderRadius: '3px',
+                padding: '0 2px',
               }}
               onMouseDown={(e) => onHighlightMouseDown(e, tweetId, ai)}
               title={`Deploy $${ai.ticker}`}
@@ -468,9 +522,9 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
 
   const tweetBody = (
     <>
-      {/* Header: avatar + name + handle | timestamp + actions */}
-      <div className="flex items-center gap-2 mb-1.5">
-        <Avatar src={tweet.profilePic} name={tweet.username} size={30} />
+      {/* Header: avatar + name + handle + timestamp */}
+      <div className="flex items-center gap-2.5 mb-2">
+        <Avatar src={tweet.profilePic} name={tweet.username} size={32} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="text-white/90 font-semibold text-[12px] truncate">{tweet.displayName}</span>
@@ -479,10 +533,9 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
                 <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
               </svg>
             )}
-            <span className="text-white/20 text-[10px] tabular-nums flex-shrink-0">{fmtTime(tweet.timestamp)}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-white/25 text-[11px] hover:underline truncate">@{tweet.username}</a>
+          <div className="flex items-center gap-1 mt-0.5">
+            <a href={`https://x.com/${tweet.username}`} target="_blank" rel="noopener noreferrer" className="text-white/30 text-[11px] hover:underline truncate">@{tweet.username}</a>
             {tweet.followedUser?.followers && (
               <>
                 <span className="text-white/10 text-[10px]">·</span>
@@ -493,7 +546,7 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
               href={buildUrl(tweet)}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-4 h-4 rounded flex items-center justify-center text-white/15 hover:text-white/40 transition-colors"
+              className="w-4 h-4 rounded flex items-center justify-center text-white/12 hover:text-white/40 transition-colors"
               title="Open tweet"
               onClick={(e) => e.stopPropagation()}
             >
@@ -501,11 +554,12 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
             </a>
             <button
               onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(buildUrl(tweet)); }}
-              className="w-4 h-4 rounded flex items-center justify-center text-white/15 hover:text-white/40 transition-colors"
+              className="w-4 h-4 rounded flex items-center justify-center text-white/12 hover:text-white/40 transition-colors"
               title="Copy link"
             >
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
             </button>
+            <span className="text-white/20 text-[9px] tabular-nums flex-shrink-0 ml-1">{fmtTime(tweet.timestamp)}</span>
           </div>
         </div>
       </div>
@@ -523,7 +577,7 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
 
       {/* Tweet text with AI highlights */}
       {tweet.text && (
-        <p className="text-white/65 text-[13px] font-medium leading-[1.5] whitespace-pre-wrap break-words select-text">
+        <p className="text-white/90 text-[13px] font-medium leading-[1.6] whitespace-pre-wrap break-words select-text">
           {renderTextWithAi(
             isDeleted ? tweet.text.replace(/^🗑️ DELETED TWEET:\n?/, '') : tweet.text,
             tweet.id,
@@ -534,15 +588,12 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
 
       {/* Follow card */}
       {tweet.followedUser && (tweet.tweetType === 'FOLLOW' || tweet.tweetType === 'UNFOLLOW') && (
-        <div className="mt-2 border border-white/[0.04] rounded-md p-2.5 bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <Avatar src={tweet.followedUser.profilePic} name={tweet.followedUser.handle} size={44} />
-            <div className="flex-1 min-w-0">
-              <span className="text-white/90 font-semibold text-sm block">{tweet.followedUser.displayName}</span>
-              <span className="text-white/40 text-xs block">@{tweet.followedUser.handle}</span>
-              {tweet.followedUser.bio && <p className="text-white/50 text-xs mt-1.5 leading-relaxed line-clamp-2">{tweet.followedUser.bio}</p>}
-              {tweet.followedUser.followers && <span className="text-white/20 text-[11px] mt-1 block">{tweet.followedUser.followers} followers</span>}
-            </div>
+        <div className="mt-2.5 border border-white/[0.06] rounded-lg overflow-hidden bg-white/[0.02]">
+          {/* Profile section */}
+          <div className="flex flex-col items-center pt-4 pb-3 px-4">
+            <Avatar src={tweet.followedUser.profilePic} name={tweet.followedUser.handle} size={64} />
+            <span className="text-white/95 font-bold text-[15px] mt-2.5">{tweet.followedUser.displayName}</span>
+            <span className="text-white/35 text-xs mt-0.5">@{tweet.followedUser.handle}</span>
             <button
               onClick={() => {
                 if (onFollowDeploy && tweet.followedUser) {
@@ -554,16 +605,34 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
                   );
                 }
               }}
-              className="px-3 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 hover:text-blue-300 font-semibold text-[11px] rounded border border-blue-500/25 hover:border-blue-500/40 transition-all flex-shrink-0"
+              className="inline-flex items-center gap-1 px-2.5 py-1 mt-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 hover:text-blue-300 font-semibold text-[11px] rounded-md border border-blue-500/25 hover:border-blue-500/40 transition-colors"
             >
-              DEPLOY
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              Deploy &quot;{tweet.followedUser.handle}&quot;
             </button>
           </div>
+          {/* Bio + details */}
+          {(tweet.followedUser.bio || tweet.followedUser.url || tweet.followedUser.followers) && (
+            <div className="px-4 pb-3 space-y-1.5 border-t border-white/[0.04] pt-3">
+              {tweet.followedUser.bio && (
+                <p className="text-white/55 text-[12px] leading-relaxed">{tweet.followedUser.bio}</p>
+              )}
+              {tweet.followedUser.url && (
+                <div className="flex items-center gap-1.5 text-white/30 text-[11px]">
+                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" /><path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" /></svg>
+                  <a href={tweet.followedUser.url} target="_blank" rel="noopener noreferrer" className="text-blue-400/60 hover:text-blue-400 truncate">{tweet.followedUser.url.replace(/^https?:\/\//, '')}</a>
+                </div>
+              )}
+              {tweet.followedUser.followers && (
+                <span className="text-white/25 text-[11px] block">{tweet.followedUser.followers} Followers</span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Replied-to embed */}
-      {tweet.repliedToTweet && <EmbedCard tweet={tweet.repliedToTweet} />}
+      {/* Replied-to embed (skip for deleted tweets) */}
+      {!isDeleted && tweet.repliedToTweet && <EmbedCard tweet={tweet.repliedToTweet} />}
 
       {/* Standalone image — show when no media, or media has only videos without thumbnails */}
       {tweet.imageUrl && (
@@ -574,60 +643,64 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
           && !tweet.media.some(m => m.type === 'video' && m.thumbnail))
       ) && (
         <div className="mt-2.5 rounded-lg overflow-hidden" data-mc>
-          <img src={px(tweet.imageUrl)} alt="" className="w-full max-h-72 object-cover" loading="lazy" onError={hideOnError} />
+          <img src={px(tweet.imageUrl)} alt="" className="w-full max-h-72 object-cover" loading="eager" onError={hideOnError} />
         </div>
       )}
 
       {/* Media grid */}
       {tweet.media && tweet.media.length > 0 && <MediaGrid media={tweet.media} />}
 
-      {/* Quoted tweet embed — pass AI highlights for retweets */}
-      {tweet.quotedTweet && (
+      {/* Quoted tweet embed — pass AI highlights for retweets (skip for deleted tweets) */}
+      {!isDeleted && tweet.quotedTweet && (
         <EmbedCard
           tweet={tweet.quotedTweet}
           renderFn={tweetAi ? (text: string) => renderTextWithAi(text, tweet.id, tweetAi) : undefined}
         />
       )}
 
-      {/* Link previews */}
-      {tweet.linkPreviews && tweet.linkPreviews.length > 0 && tweet.linkPreviews.map((link, i) => <LinkPreviewCard key={i} link={link} />)}
+      {/* Link previews (skip for deleted tweets) */}
+      {!isDeleted && tweet.linkPreviews && tweet.linkPreviews.length > 0 && tweet.linkPreviews.map((link, i) => <LinkPreviewCard key={i} link={link} />)}
     </>
   );
 
   return (
     <div
-      className="rounded-md border overflow-hidden relative tweet-card"
+      className="relative tweet-card rounded-lg overflow-hidden"
+      onClick={handleCardClick}
       style={{
         contain: 'content',
-        background: isDeleted ? 'rgba(220,38,38,0.06)' : tweet.highlightColor ? `${tweet.highlightColor}08` : 'transparent',
-        borderColor: isDeleted ? 'rgba(220,38,38,0.15)' : tweet.highlightColor ? `${tweet.highlightColor}30` : 'rgba(255,255,255,0.04)',
+        background: isDeleted ? 'rgba(220,38,38,0.04)' : tweet.highlightColor ? `${tweet.highlightColor}10` : 'rgba(255,255,255,0.015)',
+        border: tweet.highlightColor ? `1.5px solid ${tweet.highlightColor}90` : '1px solid rgba(255,255,255,0.10)',
+        boxShadow: tweet.highlightColor ? `0 0 24px ${tweet.highlightColor}40, 0 0 8px ${tweet.highlightColor}30, inset 0 0 20px ${tweet.highlightColor}08` : 'none',
       }}
     >
-      {isDeleted && (
-        <div className="absolute top-0 left-0 w-[3px] h-full bg-red-500/40 rounded-l" />
-      )}
+      {isDeleted ? (
+        <div className="absolute top-0 left-0 w-[3px] h-full bg-red-500/50" />
+      ) : cardSidebarColor && !tweet.highlightColor ? (
+        <div className="absolute top-0 left-0 w-[3px] h-full" style={{ backgroundColor: cardSidebarColor }} />
+      ) : null}
 
       {deployBtnPosition === 'left' ? (
         <div className="flex">
           <button
             onClick={handleDeploy}
-            className="w-[32px] flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white/[0.03] hover:bg-blue-500/10 text-white/40 hover:text-blue-400 transition-all border-r border-white/[0.06]"
+            className="w-[32px] flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white/[0.02] hover:bg-blue-500/10 text-white/30 hover:text-blue-400 transition-colors border-r border-white/[0.04]"
           >
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             <span className="font-bold text-[7px] uppercase tracking-wider">DEPLOY</span>
           </button>
-          <div className="flex-1 min-w-0 px-3 py-2.5">
+          <div className="flex-1 min-w-0 px-3.5 py-3">
             {tweetBody}
           </div>
         </div>
       ) : deployBtnPosition === 'right' ? (
         <div className="relative">
-          <div className="px-3 py-2.5">
+          <div className="px-3.5 py-3 pr-10">
             {tweetBody}
           </div>
           <button
             onClick={handleDeploy}
-            className="absolute top-0 right-0 bottom-0 w-[32px] flex flex-col items-center justify-center gap-2 bg-white/[0.02] hover:bg-blue-500/10 text-white/30 hover:text-blue-400 transition-all border-l border-white/[0.06]"
+            className="absolute top-0 right-0 bottom-0 w-[32px] flex flex-col items-center justify-center gap-2 bg-white/[0.02] hover:bg-blue-500/10 text-white/25 hover:text-blue-400 transition-colors border-l border-white/[0.04]"
           >
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             <span className="font-bold text-[7px] uppercase tracking-wider">DEPLOY</span>
@@ -636,12 +709,12 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
       ) : (
         /* top-right: deploy button overlaid as a corner tab */
         <div className="relative">
-          <div className="px-3 py-2.5">
+          <div className="px-3.5 py-3 pr-[85px]">
             {tweetBody}
           </div>
           <button
             onClick={handleDeploy}
-            className="absolute top-0 right-0 flex items-center gap-1 bg-white/[0.03] hover:bg-blue-500/10 text-white/40 hover:text-blue-400 font-semibold border-l border-b border-white/[0.06] rounded-bl transition-colors"
+            className="absolute top-0 right-0 flex items-center gap-1 bg-white/[0.03] hover:bg-blue-500/10 text-white/35 hover:text-blue-400 font-semibold border-l border-b border-white/[0.05] rounded-bl transition-colors"
             style={{
               fontSize: `${10 * deployBtnScale / 100}px`,
               padding: `${6 * deployBtnScale / 100}px ${10 * deployBtnScale / 100}px`,
@@ -660,6 +733,7 @@ const TweetCard = memo(function TweetCard({ tweet, tweetAi, deployBtnPosition, d
     && prev.tweetAi === next.tweetAi
     && prev.deployBtnPosition === next.deployBtnPosition
     && prev.deployBtnScale === next.deployBtnScale
+    && prev.cardSidebarColor === next.cardSidebarColor
     && prev.onDeploy === next.onDeploy
     && prev.onFollowDeploy === next.onFollowDeploy
     && prev.onHighlightMouseDown === next.onHighlightMouseDown;
@@ -673,12 +747,14 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
   // Deploy button position/scale from localStorage
   const [deployBtnPosition, setDeployBtnPosition] = useState<'left' | 'right' | 'top-right'>('right');
   const [deployBtnScale, setDeployBtnScale] = useState(100);
+  const [cardSidebarColor, setCardSidebarColor] = useState('');
 
   useEffect(() => {
     const pos = storeGet('nnn-deploy-btn-position');
     if (pos === 'left' || pos === 'right' || pos === 'top-right') setDeployBtnPosition(pos);
     const scale = parseInt(storeGet('nnn-deploy-btn-scale') || '100', 10);
     if (scale >= 60 && scale <= 200) setDeployBtnScale(scale);
+    setCardSidebarColor(storeGet('nnn-card-sidebar-color') || '');
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'nnn-deploy-btn-position') {
@@ -689,17 +765,27 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
         const v = parseInt(e.newValue || '100', 10);
         if (v >= 60 && v <= 200) setDeployBtnScale(v);
       }
+      if (e.key === 'nnn-card-sidebar-color') {
+        setCardSidebarColor(e.newValue || '');
+      }
     };
     const onCustom = (e: Event) => {
-      const { position, scale } = (e as CustomEvent).detail;
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      const { position, scale } = detail;
       if (position === 'left' || position === 'right' || position === 'top-right') setDeployBtnPosition(position);
       if (typeof scale === 'number' && scale >= 60 && scale <= 200) setDeployBtnScale(scale);
     };
+    const onSidebarChange = () => {
+      setCardSidebarColor(storeGet('nnn-card-sidebar-color') || '');
+    };
     window.addEventListener('storage', onStorage);
     window.addEventListener('nnn-deploy-btn-change', onCustom);
+    window.addEventListener('nnn-card-sidebar-change', onSidebarChange);
     return () => {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('nnn-deploy-btn-change', onCustom);
+      window.removeEventListener('nnn-card-sidebar-change', onSidebarChange);
     };
   }, []);
 
@@ -802,16 +888,8 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
     };
   }, [popup]);
 
-  // Stable callback for AI highlight mousedown — passed to each TweetCard
-  const handleHighlightMouseDown = useCallback((
-    e: React.MouseEvent,
-    tweetId: string,
-    ai: AiHighlight
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-
+  // Build images list for AI highlight popup
+  const buildHighlightImages = useCallback((ai: AiHighlight) => {
     const allImages = [...ai.images];
     const currentBrowserImages = browserImagesRef.current;
     if (currentBrowserImages.length > 0) {
@@ -833,20 +911,93 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
         if (!allImages.includes(serveUrl)) allImages.push(serveUrl);
       });
     }
-
-    setPopup({
-      tweetId,
-      name: ai.name,
-      ticker: ai.ticker,
-      images: allImages,
-      selectedImage: 0,
-      x: rect.left + rect.width / 2,
-      y: rect.top,
-      originX: e.clientX,
-      originY: e.clientY,
-      mouseDownTime: Date.now(),
-    });
+    return allImages;
   }, []);
+
+  // Stable callback for AI highlight mousedown — passed to each TweetCard
+  const handleHighlightMouseDown = useCallback((
+    e: React.MouseEvent,
+    tweetId: string,
+    ai: AiHighlight
+  ) => {
+    const mode = aiClickModeRef.current;
+
+    if (mode === 'hold') {
+      // Hold mode: show popup immediately on mousedown (user drags to deploy on release)
+      e.preventDefault();
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      const allImages = buildHighlightImages(ai);
+      setPopup({
+        tweetId,
+        name: ai.name,
+        ticker: ai.ticker,
+        images: allImages,
+        selectedImage: 0,
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+        originX: e.clientX,
+        originY: e.clientY,
+        mouseDownTime: Date.now(),
+      });
+    } else {
+      // Click mode: defer to mouseup so text selection still works
+      pendingHighlightRef.current = {
+        tweetId,
+        ai,
+        target: e.target as HTMLElement,
+        originX: e.clientX,
+        originY: e.clientY,
+        time: Date.now(),
+      };
+    }
+  }, [buildHighlightImages]);
+
+  // Track pending highlight for click mode
+  const pendingHighlightRef = useRef<{
+    tweetId: string;
+    ai: AiHighlight;
+    target: HTMLElement;
+    originX: number;
+    originY: number;
+    time: number;
+  } | null>(null);
+
+  // Resolve highlight click on mouseup (click mode only)
+  useEffect(() => {
+    const handleHighlightMouseUp = (e: MouseEvent) => {
+      const pending = pendingHighlightRef.current;
+      if (!pending) return;
+      pendingHighlightRef.current = null;
+
+      // If user dragged more than 5px, they're selecting text — don't show popup
+      const dist = Math.hypot(e.clientX - pending.originX, e.clientY - pending.originY);
+      if (dist > 5) return;
+
+      // If there's a text selection, don't show popup
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 0) return;
+
+      const { tweetId, ai, target } = pending;
+      const rect = target.getBoundingClientRect();
+      const allImages = buildHighlightImages(ai);
+
+      setPopup({
+        tweetId,
+        name: ai.name,
+        ticker: ai.ticker,
+        images: allImages,
+        selectedImage: 0,
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+        originX: pending.originX,
+        originY: pending.originY,
+        mouseDownTime: pending.time,
+      });
+    };
+
+    document.addEventListener('mouseup', handleHighlightMouseUp);
+    return () => document.removeEventListener('mouseup', handleHighlightMouseUp);
+  }, [buildHighlightImages]);
 
   const handlePopupImageClick = useCallback((e: React.MouseEvent, imageIndex: number) => {
     e.stopPropagation();
@@ -958,7 +1109,7 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
         </div>
       )}
 
-      <div className="p-1 space-y-px">
+      <div className="flex flex-col gap-1.5 p-1.5">
         {tweets.length === 0 ? (
           <div className="text-center py-16 text-white/25">
             <div className="w-6 h-6 border-2 border-white/[0.08] border-t-white/30 rounded-full animate-spin mx-auto mb-3" />
@@ -972,6 +1123,7 @@ export default function Panel3({ themeId, tweets, customNotifications, defaultCo
               tweetAi={aiResults?.[tweet.id]}
               deployBtnPosition={deployBtnPosition}
               deployBtnScale={deployBtnScale}
+              cardSidebarColor={cardSidebarColor}
               onDeploy={stableOnDeploy}
               onFollowDeploy={stableOnFollowDeploy}
               onHighlightMouseDown={handleHighlightMouseDown}

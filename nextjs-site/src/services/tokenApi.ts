@@ -559,6 +559,48 @@ export class TokenDeploymentService {
     console.log("[222] Setting up nonce pool for:", publicKey.slice(0, 8) + "...");
   }
 
+  claimFees(
+    publicKey: string,
+    privateKey: string,
+    onSuccess: (data: { claimed: number; signature?: string }) => void,
+    onError: (error: string) => void
+  ): void {
+    if (!this.ws || !this.connected) {
+      onError("Not connected to deploy server.");
+      return;
+    }
+
+    const requestId = `close_atas_${Date.now()}`;
+
+    const handler = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.command !== "close_atas") return;
+        if (data.request_id && data.request_id !== requestId) return;
+        this.ws?.removeEventListener("message", handler);
+        clearTimeout(timeout);
+        if (data.success) {
+          onSuccess({ claimed: data.totalReclaimed || 0, signature: data.signatures?.[0] });
+        } else {
+          onError(data.error || "Failed to close ATAs");
+        }
+      } catch {}
+    };
+
+    this.ws.addEventListener("message", handler);
+
+    const timeout = setTimeout(() => {
+      this.ws?.removeEventListener("message", handler);
+      onError("Close ATAs timed out (60s)");
+    }, 60_000);
+
+    this.ws.send(JSON.stringify({
+      command: "close_atas",
+      wallets: [{ publicKey, privateKey }],
+      request_id: requestId,
+    }));
+  }
+
   disconnect(): void {
     // Stop auto-reconnect
     if (this.reconnectTimer) {
